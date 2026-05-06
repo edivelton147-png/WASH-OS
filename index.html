@@ -5,70 +5,85 @@
   <title>WASH-OS</title>
 
   <style>
+
     body{
       margin:0;
       font-family:Arial,sans-serif;
       background:#0f172a;
       color:white;
       display:flex;
-      align-items:center;
       justify-content:center;
+      align-items:center;
       height:100vh;
-      text-align:center;
+      overflow:hidden;
     }
 
     .container{
+      text-align:center;
       max-width:700px;
+      padding:40px;
     }
 
     h1{
-      font-size:64px;
+      font-size:72px;
       margin-bottom:20px;
       color:#38bdf8;
+      letter-spacing:2px;
     }
 
     p{
+      font-size:20px;
+      line-height:1.8;
       color:#cbd5e1;
-      line-height:1.7;
       margin-bottom:40px;
-      font-size:18px;
     }
 
-    a{
+    .btn{
       display:inline-block;
+      padding:18px 34px;
       background:#0ea5e9;
       color:white;
       text-decoration:none;
-      padding:18px 32px;
       border-radius:14px;
       font-size:20px;
       font-weight:bold;
       transition:.2s;
     }
 
-    a:hover{
+    .btn:hover{
       background:#0284c7;
-      transform:translateY(-2px);
+      transform:translateY(-3px);
     }
+
+    .mini{
+      margin-top:30px;
+      color:#64748b;
+      font-size:14px;
+    }
+
   </style>
 </head>
 
 <body>
 
-<div class="container">
+  <div class="container">
 
-  <h1>WASH-OS</h1>
+    <h1>WASH-OS</h1>
 
-  <p>
-    Plataforma modular para operaciones WASH,
-    automatización documental y gestión humanitaria.
-  </p>
+    <p>
+      Plataforma modular para operaciones WASH,
+      automatización documental y gestión humanitaria.
+    </p>
 
-  <a href="modules/caja_herramientas_v7.html">
-    Entrar a la plataforma
-  </a>
+    <a class="btn" href="modules/caja_herramientas_v7.html">
+      Entrar a la plataforma
+    </a>
 
-</div>
+    <div class="mini">
+      UNICEF · WASH · Gestión humanitaria · IA operativa
+    </div>
+
+  </div>
 
 </body>
 </html>
