@@ -204,9 +204,9 @@ function renderHome(){
       {id:'traductor',icon:'🌐',name:'Traductor WASH / ONU',desc:'Inglés ↔ Español con glosario técnico.',color:'#f59e0b',bg:'#fffbeb',badge:'50+ términos WASH'},
       {id:'reuniones',icon:'🎙',name:'Resumen de reuniones',desc:'Transcripciones, actas, notas y audio.',color:'#14b8a6',bg:'#f0fdfa',badge:'Texto · Doc · Audio'},
       {id:'extractor',icon:'📊',name:'Extractor de indicadores',desc:'Extrae indicadores de cualquier documento.',color:'#0ea5e9',bg:'#f0f9ff',badge:'PDF · DOCX · PPTX · XLSX'},
-      {id:'comparador',icon:'📈',name:'Comparador de resultados',desc:'Analiza cambios, tendencias y variaciones entre períodos.',color:'#f97316',bg:'#fff7ed',badge:'Resultados · KPIs · Tendencias'},
-      {id:'propuestas',icon:'📋',name:'Generador de propuestas',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',color:'#ec4899',bg:'#fdf2f8',badge:'Narrativas · Donantes · UNICEF'},
-    ].map(t=>`<div onclick="go('${t.id}')" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      {id:'comparador',action:'comparador',icon:'📈',name:'Comparador de resultados',desc:'Analiza cambios, tendencias y variaciones entre períodos.',color:'#f97316',bg:'#fff7ed',badge:'Resultados · KPIs · Tendencias'},
+      {id:'propuestas',action:'propuestas',icon:'📋',name:'Generador de propuestas',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',color:'#ec4899',bg:'#fdf2f8',badge:'Narrativas · Donantes · UNICEF'},
+    ].map(t=>`<div onclick="t.action ? openTool(t.action) : go(t.id)" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
       <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">${t.icon}</div>
       <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">${t.name}</div>
       <div style="font-size:11px;color:#64748b;line-height:1.5;margin-bottom:8px">${t.desc}</div>
@@ -738,4 +738,85 @@ function copiarMejora(){if(!mejoradorTextMejorado){alert('Sin texto.');return;}n
 function exportarMejora(){if(!mejoradorTextMejorado){alert('Sin texto.');return;}const estilo=ESTILOS[mejoradorStyle];const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Texto mejorado</title><style>@page{margin:20mm 15mm}body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:32px;font-size:13px;line-height:1.8}h1{font-size:20px;font-weight:600;color:#6d28d9;margin-bottom:4px}.meta{color:#64748b;font-size:12px;margin-bottom:14px}.note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;margin-bottom:16px;font-size:12px;color:#1d4ed8}.badge{display:inline-block;background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;border-radius:99px;padding:3px 10px;font-size:11px;margin-bottom:14px}.st{font-size:13px;font-weight:600;color:#475569;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0}.content-mej{white-space:pre-wrap;background:#faf5ff;border-radius:8px;padding:16px;border:1px solid #e9d5ff;line-height:1.85}.content-cambios{white-space:pre-wrap;background:#fffbeb;border-radius:8px;padding:14px;border:1px solid #fde68a;font-size:12px;line-height:1.7}.content-orig{white-space:pre-wrap;background:#f8fafc;border-radius:8px;padding:14px;border:1px solid #e2e8f0;font-size:12px;color:#64748b;line-height:1.7}.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between}@media print{.note{display:none}}</style></head><body><h1>Texto mejorado</h1><div class="meta">Frank Sanchez · WASH · UNICEF Tumbes · ${new Date().toLocaleString('es-PE')}</div><div class="note">Para PDF: <strong>Ctrl+P → Guardar como PDF</strong></div><span class="badge">${estilo.icon} ${estilo.label} — ${estilo.sub}</span><div class="st">✨ Texto mejorado</div><div class="content-mej">${mejoradorTextMejorado}</div>${mejoradorExplicacion?`<div class="st">💡 Cambios realizados</div><div class="content-cambios">${mejoradorExplicacion}</div>`:''}<div class="st">📄 Texto original</div><div class="content-orig">${mejoradorTextoOriginal}</div><div class="footer"><span>Frank Sanchez · WASH · UNICEF Tumbes</span><span>${new Date().toLocaleDateString('es-PE')}</span></div></body></html>`;dlBlob(html,'texto_mejorado_'+mejoradorStyle+'_'+todayStr+'.html');}
 
 init();
+</script>
+
+<div id="modal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(15,23,42,.7);
+z-index:99999;
+align-items:center;
+justify-content:center;
+">
+
+  <div id="modalContent" style="
+  width:90%;
+  max-width:1000px;
+  background:white;
+  border-radius:18px;
+  padding:24px;
+  max-height:90vh;
+  overflow:auto;
+  position:relative;
+  ">
+
+    <button onclick="closeModal()" style="
+    position:absolute;
+    top:14px;
+    right:14px;
+    border:none;
+    background:#ef4444;
+    color:white;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    ">
+      Cerrar
+    </button>
+
+    <div id="modalBody"></div>
+
+  </div>
+
+</div>
+
+<script>
+
+function openTool(tool){
+
+  const modal=document.getElementById('modal');
+  const body=document.getElementById('modalBody');
+
+  modal.style.display='flex';
+
+  if(tool==='comparador'){
+    body.innerHTML=`
+      <h1 style="margin-bottom:10px;">📈 Comparador de resultados</h1>
+      <p>Herramienta integrada en WASH-OS.</p>
+      <div style="margin-top:20px;padding:20px;background:#f8fafc;border-radius:12px;">
+        Próximamente integraremos aquí el comparador completo.
+      </div>
+    `;
+  }
+
+  if(tool==='propuestas'){
+    body.innerHTML=`
+      <h1 style="margin-bottom:10px;">📋 Generador de propuestas</h1>
+      <p>Herramienta integrada en WASH-OS.</p>
+      <div style="margin-top:20px;padding:20px;background:#fdf2f8;border-radius:12px;">
+        Próximamente integraremos aquí el generador completo.
+      </div>
+    `;
+  }
+
+}
+
+function closeModal(){
+  document.getElementById('modal').style.display='none';
+}
+
 </script>
