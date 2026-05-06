@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>WASH-OS</title>
+
+  <style>
+    body{
+      margin:0;
+      font-family:Arial,sans-serif;
+      background:#0f172a;
+      color:white;
+      padding:40px;
+    }
+
+    h1{
+      color:#38bdf8;
+      margin-bottom:10px;
+    }
+
+    p{
+      color:#cbd5e1;
+      margin-bottom:30px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:16px;
+    }
+
+    .card{
+      background:#1e293b;
+      padding:24px;
+      border-radius:14px;
+      transition:.2s;
+      border:1px solid #334155;
+    }
+
+    .card:hover{
+      transform:translateY(-4px);
+      border-color:#38bdf8;
+    }
+
+    a{
+      text-decoration:none;
+      color:#7dd3fc;
+      font-size:20px;
+      font-weight:bold;
+    }
+
+    .desc{
+      margin-top:10px;
+      color:#94a3b8;
+      font-size:14px;
+      line-height:1.5;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>WASH-OS</h1>
+
+<p>
+Plataforma modular para operaciones WASH,
+automatización documental y gestión humanitaria.
+</p>
+
+<div class="grid">
+
+  <div class="card">
+    <a href="caja_herramientas_v7.html">
+      Caja de herramientas
+    </a>
+
+    <div class="desc">
+      Plataforma principal con herramientas técnicas,
+      historial y automatización operativa.
+    </div>
+  </div>
+
+  <div class="card">
+    <a href="comparador_resultados.html">
+      Comparador de resultados
+    </a>
+
+    <div class="desc">
+      Comparación de indicadores, metas y resultados.
+    </div>
+  </div>
+
+  <div class="card">
+    <a href="generador_propuestas.html">
+      Generador de propuestas
+    </a>
+
+    <div class="desc">
+      Co-piloto IA para propuestas técnicas y documentos.
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
