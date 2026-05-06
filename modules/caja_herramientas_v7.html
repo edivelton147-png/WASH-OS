@@ -75,7 +75,7 @@ const now=new Date();
 const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
 let view='home';
-let tasks=[],timers={},reprogId=null,closingId=null,deletingId=null,pendingParentId=null,calOffset=0;
+let tasks=JSON.parse(localStorage.getItem('wash_tasks')||'[]'),timers={},reprogId=null,closingId=null,deletingId=null,pendingParentId=null,calOffset=0;
 let docText='',docFile='',findings=[],docDepth='estandar',docFilter='todos',docChecks=['contradicciones','datos','coherencia','objetivos','formato','ortografia'];
 let tradDir='es-en',activeGlos='todos';
 let meetMode='texto',meetDocText='',resumenTexto='',tareasExtraidas=[],recognition=null,micActive=false;
