@@ -1,0 +1,785 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--color-background-tertiary);color:var(--color-text-primary);padding:20px;min-height:100vh}
+input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:7px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+input:focus,select:focus,textarea:focus{border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.12)}
+button{font-family:inherit;cursor:pointer;border-radius:var(--border-radius-md);transition:all .15s;font-size:13px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;margin-bottom:12px}
+.sec{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+.w-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px;margin-bottom:8px;border-left:3px solid #6366f1}
+.tip{background:#EEEDFE;border:0.5px solid #AFA9EC;border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:8px;font-size:12px;color:#3C3489;line-height:1.6}
+</style>
+
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--color-border-tertiary)">
+  <div style="width:40px;height:40px;border-radius:var(--border-radius-md);background:#EEEDFE;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#534AB7"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8zm0-4h5v2H8z"/></svg>
+  </div>
+  <div>
+    <div style="font-size:17px;font-weight:500">Generador de propuestas</div>
+    <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:1px">Voz · Texto · 5W humanitaria · Mapa mental · Co-piloto IA</div>
+  </div>
+</div>
+
+<!-- TABS PRINCIPALES -->
+<div style="display:flex;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:16px;background:var(--color-background-primary)">
+  <button id="tab-entrada" onclick="setTab('entrada')" style="flex:1;border:none;border-radius:0;background:#534AB7;color:#fff;padding:9px 12px;font-size:12px;font-weight:500">Entrada</button>
+  <button id="tab-estructura" onclick="setTab('estructura')" style="flex:1;border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:9px 12px;font-size:12px;font-weight:500">Estructura 5W</button>
+  <button id="tab-mapa" onclick="setTab('mapa')" style="flex:1;border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:9px 12px;font-size:12px;font-weight:500">Mapa mental</button>
+  <button id="tab-validar" onclick="setTab('validar')" style="flex:1;border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:9px 12px;font-size:12px;font-weight:500">Validar doc.</button>
+  <button id="tab-resultado" onclick="setTab('resultado')" style="flex:1;border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:9px 12px;font-size:12px;font-weight:500">Propuesta</button>
+</div>
+
+<!-- ── PESTAÑA 1: ENTRADA ── -->
+<div id="panel-entrada">
+  <div class="card">
+    <div class="sec">1 · Tipo de documento</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Tipo de propuesta</label>
+        <select id="tipo-prop" onchange="actualizarCopiloto()">
+          <option value="operativo">Documento operativo</option>
+          <option value="grd">Plan de gestión de riesgo (GRD)</option>
+          <option value="proyecto">Propuesta de proyecto</option>
+          <option value="tecnico">Informe técnico</option>
+          <option value="estrategico">Plan estratégico</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Sector principal</label>
+        <select id="sector-prop">
+          <option value="wash">WASH</option>
+          <option value="salud">Salud</option>
+          <option value="educacion">Educación</option>
+          <option value="proteccion">Protección</option>
+          <option value="grd">GRD</option>
+          <option value="general">General / Multisectorial</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec">2 · Dicta o escribe tu idea libremente</div>
+    <div style="display:flex;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:12px;width:fit-content">
+      <button id="entrada-audio" onclick="setEntrada('audio')" style="border:none;border-radius:0;background:#534AB7;color:#fff;padding:7px 14px;font-size:12px">🎤 Audio / Voz</button>
+      <button id="entrada-texto" onclick="setEntrada('texto')" style="border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:7px 14px;font-size:12px">📝 Texto</button>
+    </div>
+
+    <!-- Panel Audio -->
+    <div id="panel-audio-prop">
+      <div style="background:#EEEDFE;border:0.5px solid #AFA9EC;border-radius:var(--border-radius-md);padding:12px;margin-bottom:12px;font-size:12px;color:#3C3489;line-height:1.7">
+        <strong>Cómo usar el audio:</strong><br>
+        Habla libremente — cuéntame la idea como se la contarías a un colega. No necesitas estructura. Puedes decir cosas como: <em>"Quiero hacer un documento sobre la situación WASH en Tumbes, el problema es que hay migrantes sin acceso a agua..."</em>
+      </div>
+      <div style="position:relative;margin-bottom:10px">
+        <textarea id="audio-prop-txt" rows="8" placeholder="El audio transcrito aparecerá aquí... o también puedes dictar directamente en este campo mientras grabas." style="resize:vertical;line-height:1.7;font-size:13px;padding-right:60px"></textarea>
+        <button id="mic-prop-btn" onclick="toggleMicProp()" style="position:absolute;top:10px;right:10px;background:#534AB7;color:#fff;border:none;width:40px;height:40px;border-radius:50%;font-size:18px;padding:0;display:flex;align-items:center;justify-content:center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:10px" id="mic-prop-status">Clic en el micrófono para dictar — habla libremente</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="limpiarAudio()" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);padding:6px 12px;font-size:12px">Limpiar</button>
+        <div style="flex:1"></div>
+        <span id="audio-chars" style="font-size:11px;color:var(--color-text-tertiary);align-self:center">0 chars</span>
+      </div>
+    </div>
+
+    <!-- Panel Texto -->
+    <div id="panel-texto-prop" style="display:none">
+      <textarea id="texto-prop-txt" rows="8" oninput="document.getElementById('texto-chars').textContent=this.value.length.toLocaleString()+' chars'" placeholder="Escribe libremente tu idea, contexto, problema que quieres abordar, población objetivo, alcance esperado..." style="resize:vertical;line-height:1.7;font-size:13px"></textarea>
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:5px" id="texto-chars">0 chars</div>
+    </div>
+  </div>
+
+  <!-- Co-piloto -->
+  <div class="card" id="copiloto-card">
+    <div class="sec">Co-piloto IA — preguntas clave</div>
+    <div id="copiloto-preguntas"></div>
+  </div>
+
+  <button onclick="procesarEntrada()" style="width:100%;padding:12px;background:#534AB7;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:14px;font-weight:500;margin-bottom:12px">Estructurar con 5W →</button>
+
+  <div id="entrada-prog" style="display:none" class="card">
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px" id="entrada-prog-label">Procesando...</div>
+    <div style="background:var(--color-background-secondary);border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px"><div id="entrada-prog-bar" style="height:100%;background:#534AB7;border-radius:99px;width:0%;transition:width .4s"></div></div>
+    <div id="entrada-log" style="font-family:monospace;font-size:11px;max-height:70px;overflow-y:auto;line-height:1.85;color:var(--color-text-secondary)"></div>
+    <div id="entrada-paste" style="display:none;margin-top:10px">
+      <div style="font-size:12px;color:#534AB7;margin-bottom:6px;font-weight:500">Pega aquí el JSON de Claude:</div>
+      <textarea id="entrada-json" style="width:100%;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);color:var(--color-text-primary);font-family:monospace;font-size:11px;height:120px;resize:vertical" placeholder='{"que":"","por_que":"","quien":"","como":"","cuando_donde":"","titulo_sugerido":"","recomendaciones":[]}'></textarea>
+      <button onclick="cargarEstructura()" style="margin-top:8px;padding:8px 16px;background:#534AB7;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:13px">Cargar estructura →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PESTAÑA 2: ESTRUCTURA 5W ── -->
+<div id="panel-estructura" style="display:none">
+  <div style="background:#EEEDFE;border:0.5px solid #AFA9EC;border-radius:var(--border-radius-md);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#3C3489">
+    Revisa y completa cada campo. Claude extrajo esta estructura de tu idea — ajusta lo que necesites antes de generar el mapa mental y la propuesta final.
+  </div>
+
+  <div class="card">
+    <div class="sec">Título sugerido</div>
+    <input id="prop-titulo" placeholder="Título de la propuesta o documento..." style="font-size:14px;font-weight:500"/>
+  </div>
+
+  ${[
+    {id:'que',icon:'◆',color:'#534AB7',label:'Qué',sub:'Problema, necesidad o propósito del documento',ph:'¿Qué problema aborda? ¿Qué se quiere lograr?'},
+    {id:'por_que',icon:'◉',color:'#185FA5',label:'Por qué',sub:'Justificación y contexto',ph:'¿Por qué es necesario? ¿Qué evidencia lo respalda?'},
+    {id:'quien',icon:'◎',color:'#0F6E56',label:'Quién',sub:'Población objetivo y actores involucrados',ph:'¿A quién va dirigido? ¿Quiénes participan?'},
+    {id:'como',icon:'◈',color:'#854F0B',label:'Cómo',sub:'Estrategia, actividades y metodología',ph:'¿Cómo se va a implementar? ¿Qué actividades?'},
+    {id:'cuando_donde',icon:'◌',color:'#A32D2D',label:'Cuándo y Dónde',sub:'Temporalidad y ubicación geográfica',ph:'¿En qué período? ¿En qué zona o territorio?'},
+  ].map(w=>`
+  <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;margin-bottom:10px;border-left:3px solid ${w.color}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="width:28px;height:28px;border-radius:50%;background:${w.color}22;display:flex;align-items:center;justify-content:center;font-size:14px;color:${w.color};font-weight:500;flex-shrink:0">${w.icon}</div>
+      <div><div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">${w.label}</div><div style="font-size:11px;color:var(--color-text-tertiary)">${w.sub}</div></div>
+    </div>
+    <textarea id="w-${w.id}" rows="3" placeholder="${w.ph}" style="resize:vertical;line-height:1.6;font-size:13px" oninput="actualizarMapa()"></textarea>
+  </div>`).join('')}
+
+  <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;margin-bottom:12px">
+    <div class="sec">Recomendaciones del co-piloto</div>
+    <div id="recomendaciones-lista"></div>
+  </div>
+
+  <div style="display:flex;gap:10px">
+    <button onclick="setTab('mapa')" style="flex:1;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);font-size:13px">Ver mapa mental</button>
+    <button onclick="generarPropuesta()" style="flex:2;padding:10px;background:#534AB7;border:none;color:#fff;font-size:14px;font-weight:500">Generar propuesta final →</button>
+  </div>
+
+  <div id="prop-prog" style="display:none;margin-top:12px" class="card">
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px" id="prop-prog-label">Generando...</div>
+    <div style="background:var(--color-background-secondary);border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px"><div id="prop-prog-bar" style="height:100%;background:#534AB7;border-radius:99px;width:0%;transition:width .4s"></div></div>
+    <div id="prop-paste" style="display:none;margin-top:10px">
+      <div style="font-size:12px;color:#534AB7;margin-bottom:6px;font-weight:500">Pega aquí el JSON de Claude:</div>
+      <textarea id="prop-json" style="width:100%;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);color:var(--color-text-primary);font-family:monospace;font-size:11px;height:130px;resize:vertical" placeholder='{"resumen_ejecutivo":"","objetivo_general":"","objetivos_especificos":[],"contenido_sugerido":[],"proximos_pasos":[]}'></textarea>
+      <button onclick="cargarPropuesta()" style="margin-top:8px;padding:8px 16px;background:#534AB7;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:13px">Cargar propuesta →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PESTAÑA 3: MAPA MENTAL ── -->
+<div id="panel-mapa" style="display:none">
+  <div class="card">
+    <div class="sec">Mapa mental de la propuesta</div>
+    <div style="font-size:12px;color:var(--color-text-tertiary);margin-bottom:14px">Se actualiza automáticamente conforme completas la estructura 5W. Las ramas vacías se muestran en gris.</div>
+    <div id="mapa-container" style="overflow-x:auto;padding:10px 0">
+      <svg id="mapa-svg" viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:600px;font-family:'Segoe UI',Arial,sans-serif"></svg>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#534AB7"></div><span style="font-size:11px;color:var(--color-text-secondary)">Con contenido</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary)"></div><span style="font-size:11px;color:var(--color-text-secondary)">Pendiente</span></div>
+    </div>
+  </div>
+  <button onclick="setTab('estructura')" style="width:100%;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);font-size:13px">← Volver a estructura 5W</button>
+</div>
+
+<!-- ── PESTAÑA 4: VALIDAR DOC ── -->
+<div id="panel-validar" style="display:none">
+  <div class="card">
+    <div class="sec">Subir documento para validar</div>
+    <div style="background:#EEEDFE;border:0.5px solid #AFA9EC;border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:12px;font-size:12px;color:#3C3489;line-height:1.6">
+      Sube un borrador o documento avanzado. Claude lo compara contra la estructura 5W que definiste y te dice qué va bien, qué falta y qué mejorar.
+    </div>
+    <div style="display:flex;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:10px;width:fit-content">
+      <button id="val-texto-btn" onclick="setValMode('texto')" style="border:none;border-radius:0;background:#534AB7;color:#fff;padding:6px 14px;font-size:12px">Pegar texto</button>
+      <button id="val-doc-btn" onclick="setValMode('doc')" style="border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:6px 14px;font-size:12px">Subir documento</button>
+    </div>
+    <div id="val-panel-texto"><textarea id="val-txt" rows="8" placeholder="Pega aquí el borrador o sección del documento a validar..." style="resize:vertical;line-height:1.6"></textarea></div>
+    <div id="val-panel-doc" style="display:none">
+      <div onclick="document.getElementById('fi-val').click()" ondragover="event.preventDefault();this.style.borderColor='#534AB7'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';handleValDoc(event.dataTransfer.files[0])" style="border:1.5px dashed var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:20px;text-align:center;cursor:pointer;background:#EEEDFE">
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px" id="val-doc-name">Arrastra tu borrador aquí</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)" id="val-doc-info">PDF · DOCX · TXT</div>
+      </div>
+      <input type="file" id="fi-val" accept=".pdf,.docx,.txt,.doc" style="display:none" onchange="handleValDoc(this.files[0])">
+      <div id="val-doc-ok" style="display:none;margin-top:6px;font-size:11px;color:#0F6E56;font-family:monospace"></div>
+    </div>
+  </div>
+
+  <button onclick="validarDocumento()" style="width:100%;padding:12px;background:#534AB7;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:14px;font-weight:500;margin-bottom:12px">Validar documento →</button>
+
+  <div id="val-prog" style="display:none" class="card">
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px" id="val-prog-label">Analizando...</div>
+    <div style="background:var(--color-background-secondary);border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px"><div id="val-prog-bar" style="height:100%;background:#534AB7;border-radius:99px;width:0%;transition:width .4s"></div></div>
+    <div id="val-paste" style="display:none;margin-top:10px">
+      <div style="font-size:12px;color:#534AB7;margin-bottom:6px;font-weight:500">Pega aquí el JSON de Claude:</div>
+      <textarea id="val-json" style="width:100%;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);color:var(--color-text-primary);font-family:monospace;font-size:11px;height:120px;resize:vertical" placeholder='{"va_bien":[],"gaps":[],"recomendaciones":[],"puntaje":""}'></textarea>
+      <button onclick="cargarValidacion()" style="margin-top:8px;padding:8px 16px;background:#534AB7;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:13px">Cargar validación →</button>
+    </div>
+  </div>
+
+  <div id="val-result" style="display:none">
+    <div class="card">
+      <div style="font-size:14px;font-weight:500;margin-bottom:14px;color:var(--color-text-primary)">Resultado de la validación</div>
+      <div id="val-puntaje-box" style="text-align:center;margin-bottom:16px"></div>
+      <div id="val-bien-box" style="display:none;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:500;color:#0F6E56;margin-bottom:6px">✓ Va bien</div>
+        <div id="val-bien-lista"></div>
+      </div>
+      <div id="val-gaps-box" style="display:none;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:500;color:#A32D2D;margin-bottom:6px">✗ Gaps identificados</div>
+        <div id="val-gaps-lista"></div>
+      </div>
+      <div id="val-rec-box" style="display:none;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:500;color:#854F0B;margin-bottom:6px">Recomendaciones</div>
+        <div id="val-rec-lista"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PESTAÑA 5: PROPUESTA FINAL ── -->
+<div id="panel-resultado" style="display:none">
+  <div id="prop-result-content">
+    <div style="text-align:center;padding:40px;color:var(--color-text-tertiary);font-size:13px;background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary)">
+      Completa la entrada y la estructura 5W para generar la propuesta final.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let tabActual='entrada';
+let entradaMode='audio';
+let recognition=null,micActive=false;
+let valMode='texto',valDocText='';
+let propuestaData={};
+let validacionData={};
+
+const COPILOTO={
+  operativo:['¿Has definido el alcance geográfico del documento?','¿Tienes identificados los socios implementadores?','¿Qué métricas usarás para medir el éxito?','¿El documento necesita validación institucional?'],
+  grd:['¿Has realizado un análisis de riesgos previo?','¿El plan considera enfoque diferencial (niñez, género)?','¿Qué capacidades locales están disponibles?','¿Hay una estructura de alerta temprana definida?'],
+  proyecto:['¿Tienes identificada la fuente de financiamiento?','¿El proyecto tiene indicadores de impacto medibles?','¿Cuál es el período de implementación?','¿Existen proyectos similares que puedas referenciar?'],
+  tecnico:['¿El informe tiene un público objetivo definido?','¿Qué metodología de recolección de datos usas?','¿Hay conclusiones con recomendaciones accionables?','¿El documento requiere revisión por pares?'],
+  estrategico:['¿El plan está alineado con los objetivos nacionales?','¿Has considerado escenarios de riesgo?','¿El plan tiene indicadores de seguimiento?','¿Quién es responsable de la implementación?'],
+  otro:['¿Tienes claro el propósito principal del documento?','¿Has identificado la audiencia objetivo?','¿Cuál es el plazo para completarlo?','¿Necesitas validación de terceros?'],
+};
+
+// ── TABS ──────────────────────────────────────────────────
+function setTab(t){
+  tabActual=t;
+  ['entrada','estructura','mapa','validar','resultado'].forEach(x=>{
+    const p=document.getElementById('panel-'+x),b=document.getElementById('tab-'+x);
+    if(p)p.style.display=x===t?'':'none';
+    if(b){b.style.background=x===t?'#534AB7':'transparent';b.style.color=x===t?'#fff':'var(--color-text-secondary)';}
+  });
+  if(t==='mapa')renderMapa();
+}
+
+// ── ENTRADA ───────────────────────────────────────────────
+function setEntrada(m){
+  entradaMode=m;
+  ['audio','texto'].forEach(x=>{
+    const p=document.getElementById('panel-'+x+'-prop'),b=document.getElementById('entrada-'+x);
+    if(p)p.style.display=x===m?'':'none';
+    if(b){b.style.background=x===m?'#534AB7':'transparent';b.style.color=x===m?'#fff':'var(--color-text-secondary)';}
+  });
+}
+
+// ── MICRÓFONO ─────────────────────────────────────────────
+function toggleMicProp(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    alert('Tu navegador no soporta dictado por voz. Usa Chrome.');return;
+  }
+  if(micActive){
+    if(recognition)recognition.stop();
+    micActive=false;
+    const btn=document.getElementById('mic-prop-btn');
+    btn.style.background='#534AB7';
+    document.getElementById('mic-prop-status').textContent='Dictado pausado. Clic para continuar.';
+    return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.lang='es-PE';
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.onstart=()=>{
+    micActive=true;
+    document.getElementById('mic-prop-btn').style.background='#A32D2D';
+    document.getElementById('mic-prop-status').textContent='🔴 Grabando... Habla libremente. Clic para pausar.';
+  };
+  recognition.onresult=(e)=>{
+    let final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript+' ';}
+    if(final){
+      const ta=document.getElementById('audio-prop-txt');
+      ta.value+=final;
+      document.getElementById('audio-chars').textContent=ta.value.length.toLocaleString()+' chars';
+    }
+  };
+  recognition.onend=()=>{
+    micActive=false;
+    document.getElementById('mic-prop-btn').style.background='#534AB7';
+    document.getElementById('mic-prop-status').textContent='Dictado finalizado. Clic para continuar dictando.';
+  };
+  recognition.onerror=(e)=>{
+    micActive=false;
+    document.getElementById('mic-prop-btn').style.background='#534AB7';
+    document.getElementById('mic-prop-status').textContent='Error: '+e.error+'. Intenta de nuevo.';
+  };
+  recognition.start();
+}
+
+function limpiarAudio(){
+  document.getElementById('audio-prop-txt').value='';
+  document.getElementById('audio-chars').textContent='0 chars';
+}
+
+// ── CO-PILOTO ─────────────────────────────────────────────
+function actualizarCopiloto(){
+  const tipo=document.getElementById('tipo-prop')?.value||'operativo';
+  const preguntas=COPILOTO[tipo]||COPILOTO.otro;
+  document.getElementById('copiloto-preguntas').innerHTML=preguntas.map((p,i)=>`
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:${i<preguntas.length-1?'0.5px solid var(--color-border-tertiary)':'none'}">
+      <div style="width:20px;height:20px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:10px;color:#534AB7;font-weight:500;flex-shrink:0">${i+1}</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.5">${p}</div>
+    </div>
+  `).join('');
+}
+
+// ── PROCESAR ENTRADA ──────────────────────────────────────
+function procesarEntrada(){
+  const texto=entradaMode==='audio'?document.getElementById('audio-prop-txt')?.value.trim():document.getElementById('texto-prop-txt')?.value.trim();
+  if(!texto||texto.length<20){alert('Agrega tu idea antes de continuar. Puedes dictarla por voz o escribirla.');return;}
+  const tipo=document.getElementById('tipo-prop')?.value||'operativo';
+  const sector=document.getElementById('sector-prop')?.value||'wash';
+
+  document.getElementById('entrada-prog').style.display='block';
+  document.getElementById('entrada-paste').style.display='none';
+  document.getElementById('entrada-prog-bar').style.width='40%';
+  document.getElementById('entrada-prog-label').textContent='Estructurando con 5W...';
+  entradaLog('Tipo: '+tipo+' · Sector: '+sector);
+  entradaLog('Texto: '+texto.length.toLocaleString()+' chars');
+
+  const prompt=`Eres un especialista en formulación de documentos institucionales para UNICEF y organismos humanitarios.
+
+Analiza esta idea expresada libremente y estructúrala usando el marco 5W humanitario.
+
+TIPO DE DOCUMENTO: ${tipo}
+SECTOR: ${sector}
+
+TEXTO DE ENTRADA (puede ser transcripción de audio, notas o texto libre):
+"${texto}"
+
+Extrae y estructura la información. Si algo no está claro en el texto, deja el campo con una pregunta orientadora entre corchetes.
+
+Responde ÚNICAMENTE con este JSON:
+{
+  "titulo_sugerido": "título concreto y descriptivo para el documento",
+  "que": "qué problema aborda o qué se propone lograr",
+  "por_que": "justificación y contexto del problema",
+  "quien": "población objetivo y actores involucrados",
+  "como": "estrategia, actividades o enfoque metodológico",
+  "cuando_donde": "período de implementación y ubicación geográfica",
+  "recomendaciones": ["recomendación 1 del co-piloto", "recomendación 2", "recomendación 3"]
+}`;
+
+  document.getElementById('entrada-prog-bar').style.width='70%';
+  document.getElementById('entrada-prog-label').textContent='Enviando a Claude...';
+
+  try{
+    if(typeof sendPrompt==='function'){
+      sendPrompt(prompt);
+      document.getElementById('entrada-prog-bar').style.width='85%';
+      document.getElementById('entrada-prog-label').textContent='Enviado — pega el JSON abajo';
+      entradaLog('✓ Enviado a Claude');
+    }else throw new Error('no');
+  }catch(e){
+    navigator.clipboard.writeText(prompt).then(()=>{
+      entradaLog('✓ Copiado al portapapeles','#BA7517');
+    }).catch(()=>{});
+  }
+  entradaLog('Pega el JSON cuando Claude responda','#BA7517');
+  document.getElementById('entrada-paste').style.display='block';
+}
+
+function entradaLog(msg,c='#0F6E56'){const b=document.getElementById('entrada-log');if(!b)return;const d=document.createElement('div');d.style.color=c;d.textContent='› '+msg;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+
+function cargarEstructura(){
+  const raw=document.getElementById('entrada-json')?.value.trim();
+  if(!raw){alert('Pega el JSON primero.');return;}
+  let parsed;
+  try{const m=raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:raw);}
+  catch(e){alert('JSON inválido.');return;}
+
+  // Llenar campos 5W
+  if(parsed.titulo_sugerido)document.getElementById('prop-titulo').value=parsed.titulo_sugerido;
+  if(parsed.que)document.getElementById('w-que').value=parsed.que;
+  if(parsed.por_que)document.getElementById('w-por_que').value=parsed.por_que;
+  if(parsed.quien)document.getElementById('w-quien').value=parsed.quien;
+  if(parsed.como)document.getElementById('w-como').value=parsed.como;
+  if(parsed.cuando_donde)document.getElementById('w-cuando_donde').value=parsed.cuando_donde;
+
+  // Recomendaciones co-piloto
+  if(parsed.recomendaciones&&parsed.recomendaciones.length){
+    document.getElementById('recomendaciones-lista').innerHTML=parsed.recomendaciones.map((r,i)=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px;background:#FAEEDA;border-radius:var(--border-radius-md);margin-bottom:6px;border:0.5px solid #EF9F27">
+        <div style="width:20px;height:20px;border-radius:50%;background:#EF9F27;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:500;flex-shrink:0">${i+1}</div>
+        <div style="font-size:12px;color:#412402;line-height:1.5">${r}</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('entrada-prog-bar').style.width='100%';
+  document.getElementById('entrada-prog-label').textContent='¡Estructura cargada!';
+  document.getElementById('entrada-paste').style.display='none';
+
+  actualizarMapa();
+  setTimeout(()=>setTab('estructura'),500);
+}
+
+// ── MAPA MENTAL ───────────────────────────────────────────
+function actualizarMapa(){if(tabActual==='mapa')renderMapa();}
+
+function renderMapa(){
+  const svg=document.getElementById('mapa-svg');
+  if(!svg)return;
+
+  const titulo=document.getElementById('prop-titulo')?.value.trim()||'Propuesta';
+  const ramas=[
+    {id:'que',label:'Qué',color:'#534AB7',x:350,y:100},
+    {id:'por_que',label:'Por qué',color:'#185FA5',x:580,y:180},
+    {id:'quien',label:'Quién',color:'#0F6E56',x:580,y:310},
+    {id:'como',label:'Cómo',color:'#854F0B',x:350,y:380},
+    {id:'cuando_donde',label:'Cuándo/Dónde',color:'#A32D2D',x:120,y:250},
+  ];
+
+  const cx=350,cy=230;
+  let html='';
+
+  // Líneas desde centro a ramas
+  ramas.forEach(r=>{
+    const val=document.getElementById('w-'+r.id)?.value.trim()||'';
+    const hasContent=val.length>0;
+    html+=`<line x1="${cx}" y1="${cy}" x2="${r.x}" y2="${r.y}" stroke="${hasContent?r.color:'#cbd5e1'}" stroke-width="${hasContent?2:1}" stroke-dasharray="${hasContent?'none':'6,4'}" opacity="${hasContent?0.7:0.4}"/>`;
+  });
+
+  // Nodo central
+  html+=`<ellipse cx="${cx}" cy="${cy}" rx="70" ry="32" fill="#534AB7" opacity="0.9"/>`;
+  const tituloCorto=titulo.length>18?titulo.slice(0,18)+'...':titulo;
+  html+=`<text x="${cx}" y="${cy-5}" text-anchor="middle" fill="#fff" font-size="11" font-weight="500">${tituloCorto}</text>`;
+  html+=`<text x="${cx}" y="${cy+10}" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9">Propuesta</text>`;
+
+  // Nodos rama
+  ramas.forEach(r=>{
+    const val=document.getElementById('w-'+r.id)?.value.trim()||'';
+    const hasContent=val.length>0;
+    const fill=hasContent?r.color:'var(--color-background-secondary)';
+    const textColor=hasContent?'#fff':'#94a3b8';
+    const borderColor=hasContent?r.color:'#cbd5e1';
+    const resumen=hasContent?(val.length>22?val.slice(0,22)+'...':val):'Pendiente';
+
+    html+=`<ellipse cx="${r.x}" cy="${r.y}" rx="65" ry="28" fill="${fill}" opacity="${hasContent?0.9:0.6}" stroke="${borderColor}" stroke-width="1"/>`;
+    html+=`<text x="${r.x}" y="${r.y-6}" text-anchor="middle" fill="${textColor}" font-size="10" font-weight="500">${r.label}</text>`;
+    html+=`<text x="${r.x}" y="${r.y+8}" text-anchor="middle" fill="${hasContent?'rgba(255,255,255,0.8)':'#94a3b8'}" font-size="9">${resumen}</text>`;
+  });
+
+  svg.innerHTML=html;
+}
+
+// ── GENERAR PROPUESTA FINAL ───────────────────────────────
+function generarPropuesta(){
+  const titulo=document.getElementById('prop-titulo')?.value.trim();
+  const que=document.getElementById('w-que')?.value.trim();
+  const por_que=document.getElementById('w-por_que')?.value.trim();
+  const quien=document.getElementById('w-quien')?.value.trim();
+  const como=document.getElementById('w-como')?.value.trim();
+  const cuando_donde=document.getElementById('w-cuando_donde')?.value.trim();
+
+  if(!que||!quien||!como){alert('Completa al menos Qué, Quién y Cómo antes de generar la propuesta.');return;}
+
+  const tipo=document.getElementById('tipo-prop')?.value||'operativo';
+  const sector=document.getElementById('sector-prop')?.value||'wash';
+
+  document.getElementById('prop-prog').style.display='block';
+  document.getElementById('prop-paste').style.display='none';
+  document.getElementById('prop-prog-bar').style.width='40%';
+  document.getElementById('prop-prog-label').textContent='Generando propuesta...';
+
+  const prompt=`Eres un especialista en formulación de documentos institucionales para UNICEF y organismos humanitarios.
+
+Genera una propuesta estructurada basada en esta información:
+
+TIPO: ${tipo}
+SECTOR: ${sector}
+TÍTULO: ${titulo||'Sin título definido'}
+
+ESTRUCTURA 5W:
+- QUÉ: ${que}
+- POR QUÉ: ${por_que||'No definido'}
+- QUIÉN: ${quien}
+- CÓMO: ${como}
+- CUÁNDO/DÓNDE: ${cuando_donde||'No definido'}
+
+Genera una propuesta profesional completa. Responde ÚNICAMENTE con este JSON:
+{
+  "resumen_ejecutivo": "resumen ejecutivo de 4-5 líneas del documento propuesto",
+  "objetivo_general": "objetivo general claro y medible",
+  "objetivos_especificos": ["objetivo específico 1", "objetivo específico 2", "objetivo específico 3"],
+  "contenido_sugerido": [
+    {"seccion": "nombre de sección", "descripcion": "qué debe contener esta sección"},
+    {"seccion": "nombre de sección 2", "descripcion": "qué debe contener"}
+  ],
+  "proximos_pasos": ["paso 1 concreto", "paso 2", "paso 3"],
+  "advertencias": ["advertencia o gap importante si lo hay"]
+}`;
+
+  document.getElementById('prop-prog-bar').style.width='70%';
+  document.getElementById('prop-prog-label').textContent='Enviando a Claude...';
+
+  try{
+    if(typeof sendPrompt==='function'){sendPrompt(prompt);document.getElementById('prop-prog-bar').style.width='85%';document.getElementById('prop-prog-label').textContent='Enviado — pega el JSON abajo';}
+    else throw new Error('no');
+  }catch(e){navigator.clipboard.writeText(prompt).catch(()=>{});}
+  document.getElementById('prop-paste').style.display='block';
+}
+
+function cargarPropuesta(){
+  const raw=document.getElementById('prop-json')?.value.trim();
+  if(!raw){alert('Pega el JSON primero.');return;}
+  let parsed;
+  try{const m=raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:raw);}
+  catch(e){alert('JSON inválido.');return;}
+
+  propuestaData=parsed;
+  document.getElementById('prop-prog-bar').style.width='100%';
+  document.getElementById('prop-prog-label').textContent='¡Propuesta generada!';
+  document.getElementById('prop-paste').style.display='none';
+
+  mostrarPropuesta();
+  setTimeout(()=>setTab('resultado'),400);
+}
+
+function mostrarPropuesta(){
+  const titulo=document.getElementById('prop-titulo')?.value.trim()||'Propuesta';
+  const p=propuestaData;
+  const html=`
+    <div class="card" style="border-top:3px solid #534AB7">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px">${titulo}</div>
+          <span style="font-size:10px;background:#EEEDFE;color:#534AB7;border-radius:99px;padding:2px 8px;border:0.5px solid #AFA9EC">${document.getElementById('tipo-prop')?.value||''} · ${document.getElementById('sector-prop')?.value||''}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="exportarPropuesta()" style="background:#534AB7;color:#fff;border:none;padding:7px 14px;font-size:12px;border-radius:var(--border-radius-md)">Descargar HTML → PDF</button>
+        </div>
+      </div>
+
+      ${p.resumen_ejecutivo?`<div style="background:#EEEDFE;border:0.5px solid #AFA9EC;border-radius:var(--border-radius-md);padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:500;color:#534AB7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Resumen ejecutivo</div>
+        <div style="font-size:13px;color:#26215C;line-height:1.7">${p.resumen_ejecutivo}</div>
+      </div>`:''}
+
+      ${p.objetivo_general?`<div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">Objetivo general</div>
+        <div style="font-size:13px;color:var(--color-text-primary);line-height:1.6;padding:10px 14px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);border-left:3px solid #534AB7">${p.objetivo_general}</div>
+      </div>`:''}
+
+      ${p.objetivos_especificos?.length?`<div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">Objetivos específicos</div>
+        ${p.objetivos_especificos.map((o,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><div style="width:20px;height:20px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:10px;color:#534AB7;font-weight:500;flex-shrink:0">${i+1}</div><div style="font-size:13px;color:var(--color-text-primary);line-height:1.5">${o}</div></div>`).join('')}
+      </div>`:''}
+
+      ${p.contenido_sugerido?.length?`<div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px">Estructura del documento</div>
+        ${p.contenido_sugerido.map((s,i)=>`<div style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:6px"><div style="font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px">${i+1}. ${s.seccion}</div><div style="font-size:11px;color:var(--color-text-secondary);line-height:1.5">${s.descripcion}</div></div>`).join('')}
+      </div>`:''}
+
+      ${p.proximos_pasos?.length?`<div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">Próximos pasos</div>
+        ${p.proximos_pasos.map((s,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary)"><div style="width:20px;height:20px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;font-size:10px;color:#0F6E56;font-weight:500;flex-shrink:0">${i+1}</div><div style="font-size:13px;color:var(--color-text-primary);line-height:1.5">${s}</div></div>`).join('')}
+      </div>`:''}
+
+      ${p.advertencias?.length?`<div style="background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:var(--border-radius-md);padding:12px">
+        <div style="font-size:11px;font-weight:500;color:#633806;margin-bottom:6px">Consideraciones importantes</div>
+        ${p.advertencias.map(a=>`<div style="font-size:12px;color:#412402;line-height:1.5;margin-bottom:4px">• ${a}</div>`).join('')}
+      </div>`:''}
+    </div>
+  `;
+  document.getElementById('prop-result-content').innerHTML=html;
+}
+
+function exportarPropuesta(){
+  const titulo=document.getElementById('prop-titulo')?.value.trim()||'Propuesta';
+  const p=propuestaData;
+  const tipo=document.getElementById('tipo-prop')?.value||'';
+  const sector=document.getElementById('sector-prop')?.value||'';
+  const w={que:document.getElementById('w-que')?.value.trim()||'',por_que:document.getElementById('w-por_que')?.value.trim()||'',quien:document.getElementById('w-quien')?.value.trim()||'',como:document.getElementById('w-como')?.value.trim()||'',cuando_donde:document.getElementById('w-cuando_donde')?.value.trim()||''};
+
+  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>${titulo}</title>
+<style>@page{margin:20mm 15mm}body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:32px;font-size:13px;line-height:1.6}
+h1{font-size:22px;font-weight:600;color:#534AB7;margin-bottom:4px}.meta{color:#64748b;font-size:12px;margin-bottom:16px}
+.note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;margin-bottom:18px;font-size:12px;color:#1d4ed8}
+.resumen{background:#EEEDFE;border:1px solid #AFA9EC;border-radius:8px;padding:14px;margin-bottom:18px;line-height:1.7;color:#26215C}
+.resumen-title{font-size:11px;font-weight:600;color:#534AB7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.obj-gen{padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #534AB7;font-size:13px;margin-bottom:16px;line-height:1.6}
+.sec-title{font-size:14px;font-weight:600;color:#475569;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0}
+.item{display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid #f1f5f9}
+.num{width:20px;height:20px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:10px;color:#534AB7;font-weight:600;flex-shrink:0}
+.contenido-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:6px}
+.c-titulo{font-size:12px;font-weight:600;color:#1e293b;margin-bottom:3px}
+.c-desc{font-size:11px;color:#64748b;line-height:1.5}
+.advertencia{background:#FAEEDA;border:1px solid #EF9F27;border-radius:8px;padding:12px;margin-top:16px}
+.adv-title{font-size:11px;font-weight:600;color:#633806;margin-bottom:6px}
+.w-section{background:#f8fafc;border-radius:8px;padding:14px;margin-bottom:16px}
+.w-title{font-size:11px;font-weight:600;color:#534AB7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between}
+@media print{.note{display:none}body{padding:0}}</style></head><body>
+<h1>${titulo}</h1>
+<div class="meta">${tipo} · Sector: ${sector} · Frank Sanchez · WASH · UNICEF Tumbes · ${new Date().toLocaleString('es-PE')}</div>
+<div class="note">Para PDF: <strong>Ctrl+P → Guardar como PDF</strong></div>
+
+${p.resumen_ejecutivo?`<div class="resumen"><div class="resumen-title">Resumen ejecutivo</div>${p.resumen_ejecutivo}</div>`:''}
+${p.objetivo_general?`<div class="sec-title">Objetivo general</div><div class="obj-gen">${p.objetivo_general}</div>`:''}
+${p.objetivos_especificos?.length?`<div class="sec-title">Objetivos específicos</div>${p.objetivos_especificos.map((o,i)=>`<div class="item"><div class="num">${i+1}</div><div>${o}</div></div>`).join('')}`:''}
+${p.contenido_sugerido?.length?`<div class="sec-title">Estructura del documento</div>${p.contenido_sugerido.map((s,i)=>`<div class="contenido-item"><div class="c-titulo">${i+1}. ${s.seccion}</div><div class="c-desc">${s.descripcion}</div></div>`).join('')}`:''}
+${p.proximos_pasos?.length?`<div class="sec-title">Próximos pasos</div>${p.proximos_pasos.map((s,i)=>`<div class="item"><div class="num" style="background:#E1F5EE;color:#0F6E56">${i+1}</div><div>${s}</div></div>`).join('')}`:''}
+${p.advertencias?.length?`<div class="advertencia"><div class="adv-title">Consideraciones importantes</div>${p.advertencias.map(a=>`<div style="font-size:12px;color:#412402;margin-bottom:3px">• ${a}</div>`).join('')}</div>`:''}
+
+<div class="sec-title">Marco 5W de la propuesta</div>
+<div class="w-section">
+  ${[['Qué',w.que,'#534AB7'],['Por qué',w.por_que,'#185FA5'],['Quién',w.quien,'#0F6E56'],['Cómo',w.como,'#854F0B'],['Cuándo y Dónde',w.cuando_donde,'#A32D2D']].filter(([,v])=>v).map(([l,v,c])=>`<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #e2e8f0"><div style="font-size:11px;font-weight:600;color:${c};margin-bottom:4px">${l}</div><div style="font-size:12px;color:#475569;line-height:1.5">${v}</div></div>`).join('')}
+</div>
+
+<div class="footer"><span>Frank Sanchez · WASH · UNICEF Tumbes</span><span>${new Date().toLocaleDateString('es-PE')}</span></div>
+</body></html>`;
+
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  a.download='propuesta_'+titulo.replace(/\s+/g,'_').slice(0,30)+'_'+new Date().toISOString().slice(0,10)+'.html';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ── VALIDAR DOCUMENTO ─────────────────────────────────────
+function setValMode(m){
+  valMode=m;
+  ['texto','doc'].forEach(x=>{
+    const p=document.getElementById('val-panel-'+x),b=document.getElementById('val-'+x+'-btn');
+    if(p)p.style.display=x===m?'':'none';
+    if(b){b.style.background=x===m?'#534AB7':'transparent';b.style.color=x===m?'#fff':'var(--color-text-secondary)';}
+  });
+}
+
+async function handleValDoc(file){
+  if(!file)return;
+  document.getElementById('val-doc-name').textContent=file.name;
+  document.getElementById('val-doc-info').textContent='Leyendo...';
+  try{
+    const ext=file.name.split('.').pop().toLowerCase();
+    let t='';
+    if(ext==='txt')t=await file.text();
+    else if(ext==='pdf'){
+      const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+      for(let i=1;i<=Math.min(pdf.numPages,40);i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(s=>s.str).join(' ')+'\n';if(t.length>80000)break;}
+    }
+    else if(ext==='docx'||ext==='doc')t=(await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;
+    if(t.length>80000)t=t.slice(0,80000);
+    valDocText=t;
+    document.getElementById('val-doc-info').textContent=(file.size/1024).toFixed(0)+' KB · '+t.length.toLocaleString()+' chars';
+    document.getElementById('val-doc-ok').style.display='block';
+    document.getElementById('val-doc-ok').textContent='✓ Listo para validar';
+  }catch(e){document.getElementById('val-doc-info').textContent='Error: '+e.message;}
+}
+
+function validarDocumento(){
+  const docTexto=valMode==='texto'?document.getElementById('val-txt')?.value.trim():valDocText.trim();
+  if(!docTexto){alert('Sube o pega el documento a validar.');return;}
+
+  const que=document.getElementById('w-que')?.value.trim()||'No definido';
+  const quien=document.getElementById('w-quien')?.value.trim()||'No definido';
+  const como=document.getElementById('w-como')?.value.trim()||'No definido';
+  const por_que=document.getElementById('w-por_que')?.value.trim()||'No definido';
+
+  document.getElementById('val-prog').style.display='block';
+  document.getElementById('val-result').style.display='none';
+  document.getElementById('val-paste').style.display='none';
+  document.getElementById('val-prog-bar').style.width='50%';
+  document.getElementById('val-prog-label').textContent='Validando documento...';
+
+  const prompt=`Eres un revisor experto de documentos institucionales de UNICEF y organismos humanitarios.
+
+Valida si este documento está alineado con los objetivos definidos en la estructura 5W.
+
+OBJETIVOS DEFINIDOS:
+- QUÉ: ${que}
+- POR QUÉ: ${por_que}
+- QUIÉN: ${quien}
+- CÓMO: ${como}
+
+DOCUMENTO A VALIDAR:
+${docTexto.slice(0,70000)}
+
+Analiza la alineación. Responde ÚNICAMENTE con este JSON:
+{
+  "puntaje": "porcentaje de alineación estimado (ej: 75%)",
+  "va_bien": ["aspecto positivo 1", "aspecto positivo 2", "aspecto positivo 3"],
+  "gaps": ["gap o inconsistencia 1", "gap 2", "gap 3"],
+  "recomendaciones": ["recomendación concreta 1", "recomendación 2", "recomendación 3"]
+}`;
+
+  document.getElementById('val-prog-bar').style.width='75%';
+  document.getElementById('val-prog-label').textContent='Enviando a Claude...';
+
+  try{
+    if(typeof sendPrompt==='function'){sendPrompt(prompt);document.getElementById('val-prog-bar').style.width='88%';document.getElementById('val-prog-label').textContent='Enviado — pega el JSON abajo';}
+    else throw new Error('no');
+  }catch(e){navigator.clipboard.writeText(prompt).catch(()=>{});}
+  document.getElementById('val-paste').style.display='block';
+}
+
+function cargarValidacion(){
+  const raw=document.getElementById('val-json')?.value.trim();
+  if(!raw){alert('Pega el JSON primero.');return;}
+  let parsed;
+  try{const m=raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:raw);}
+  catch(e){alert('JSON inválido.');return;}
+
+  validacionData=parsed;
+  document.getElementById('val-prog-bar').style.width='100%';
+  document.getElementById('val-prog-label').textContent='¡Validación completada!';
+  document.getElementById('val-paste').style.display='none';
+  mostrarValidacion();
+}
+
+function mostrarValidacion(){
+  const v=validacionData;
+  const pct=parseInt(v.puntaje)||0;
+  const color=pct>=80?'#0F6E56':pct>=60?'#854F0B':'#A32D2D';
+  const bg=pct>=80?'#E1F5EE':pct>=60?'#FAEEDA':'#FCEBEB';
+
+  document.getElementById('val-puntaje-box').innerHTML=`
+    <div style="display:inline-block;padding:16px 32px;background:${bg};border-radius:var(--border-radius-lg);border:0.5px solid ${color}44">
+      <div style="font-size:36px;font-weight:500;color:${color}">${v.puntaje||'—'}</div>
+      <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:4px">Alineación con objetivos</div>
+    </div>
+  `;
+
+  if(v.va_bien?.length){
+    document.getElementById('val-bien-box').style.display='block';
+    document.getElementById('val-bien-lista').innerHTML=v.va_bien.map(i=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:7px;background:#E1F5EE;border-radius:var(--border-radius-md);margin-bottom:5px;border:0.5px solid #5DCAA5"><div style="color:#0F6E56;font-weight:500;flex-shrink:0">✓</div><div style="font-size:12px;color:#085041;line-height:1.5">${i}</div></div>`).join('');
+  }
+
+  if(v.gaps?.length){
+    document.getElementById('val-gaps-box').style.display='block';
+    document.getElementById('val-gaps-lista').innerHTML=v.gaps.map(i=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:7px;background:#FCEBEB;border-radius:var(--border-radius-md);margin-bottom:5px;border:0.5px solid #F09595"><div style="color:#A32D2D;font-weight:500;flex-shrink:0">✗</div><div style="font-size:12px;color:#501313;line-height:1.5">${i}</div></div>`).join('');
+  }
+
+  if(v.recomendaciones?.length){
+    document.getElementById('val-rec-box').style.display='block';
+    document.getElementById('val-rec-lista').innerHTML=v.recomendaciones.map(i=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:7px;background:#FAEEDA;border-radius:var(--border-radius-md);margin-bottom:5px;border:0.5px solid #EF9F27"><div style="color:#854F0B;font-weight:500;flex-shrink:0">→</div><div style="font-size:12px;color:#412402;line-height:1.5">${i}</div></div>`).join('');
+  }
+
+  document.getElementById('val-prog').style.display='none';
+  document.getElementById('val-result').style.display='block';
+}
+
+// Init
+actualizarCopiloto();
+renderMapa();
+</script>

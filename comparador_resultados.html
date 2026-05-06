@@ -1,0 +1,653 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--color-background-tertiary);color:var(--color-text-primary);padding:20px;min-height:100vh}
+input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:7px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+input:focus,select:focus,textarea:focus{border-color:#0ea5e9;box-shadow:0 0 0 2px rgba(14,165,233,.12)}
+button{font-family:inherit;cursor:pointer;border-radius:var(--border-radius-md);transition:all .15s;font-size:13px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;margin-bottom:12px}
+.sec{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+</style>
+
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--color-border-tertiary)">
+  <div style="width:40px;height:40px;border-radius:var(--border-radius-md);background:#E6F1FB;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#185FA5"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+  </div>
+  <div>
+    <div style="font-size:17px;font-weight:500;color:var(--color-text-primary)">Comparador de resultados</div>
+    <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:1px">Metas vs resultados · Comparación de documentos — UNICEF WASH Tumbes</div>
+  </div>
+</div>
+
+<!-- Selector de modo -->
+<div style="display:flex;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:20px;background:var(--color-background-primary)">
+  <button id="modo-metas" onclick="setModo('metas')" style="flex:1;border:none;border-radius:0;background:#185FA5;color:#fff;padding:10px 16px;font-size:13px;font-weight:500">Metas vs Resultados</button>
+  <button id="modo-docs" onclick="setModo('docs')" style="flex:1;border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:10px 16px;font-size:13px;font-weight:500">Comparar documentos</button>
+</div>
+
+<!-- MODO 1: METAS VS RESULTADOS -->
+<div id="panel-metas">
+  <div class="card">
+    <div class="sec">1 · Información del período</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Nombre del reporte</label><input id="rep-nombre" placeholder="Ej: PAO Tumbes Q1 2025"/></div>
+      <div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Período</label><input id="rep-periodo" placeholder="Ej: Enero-Marzo 2025"/></div>
+      <div><label style="font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:4px">Sector principal</label>
+        <select id="rep-sector">
+          <option value="wash">WASH</option>
+          <option value="salud">Salud</option>
+          <option value="educacion">Educación</option>
+          <option value="proteccion">Protección</option>
+          <option value="grd">GRD</option>
+          <option value="general">General / Multisectorial</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec">2 · Indicadores</div>
+    <div id="indicadores-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
+    <button onclick="agregarIndicador()" style="width:100%;padding:8px;background:var(--color-background-secondary);border:0.5px dashed var(--color-border-tertiary);color:var(--color-text-secondary);font-size:12px;border-radius:var(--border-radius-md)">+ Agregar indicador</button>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:12px">
+    <button onclick="importarDesdeTexto()" style="flex:1;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);font-size:13px">Importar desde texto / documento</button>
+    <button onclick="generarComparacion()" style="flex:2;padding:10px;background:#185FA5;border:none;color:#fff;font-size:14px;font-weight:500">Analizar y comparar →</button>
+  </div>
+
+  <!-- Import desde texto -->
+  <div id="import-text-area" style="display:none" class="card">
+    <div class="sec">Pegar datos o subir documento</div>
+    <div style="display:flex;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:10px;width:fit-content">
+      <button id="it-texto" onclick="setImportMode('texto')" style="border:none;border-radius:0;background:#185FA5;color:#fff;padding:6px 14px;font-size:12px">Pegar texto</button>
+      <button id="it-doc" onclick="setImportMode('doc')" style="border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:6px 14px;font-size:12px">Subir documento</button>
+    </div>
+    <div id="it-panel-texto">
+      <textarea id="import-txt" rows="6" placeholder="Pega aquí tu tabla de indicadores, informe o cualquier texto con metas y resultados..." style="resize:vertical;line-height:1.6;margin-bottom:8px"></textarea>
+    </div>
+    <div id="it-panel-doc" style="display:none">
+      <div onclick="document.getElementById('fi-import').click()" ondragover="event.preventDefault();this.style.borderColor='#185FA5'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';handleImportDoc(event.dataTransfer.files[0])" style="border:1.5px dashed var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:20px;text-align:center;cursor:pointer;background:#E6F1FB">
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px" id="import-doc-name">Arrastra tu documento aquí</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)" id="import-doc-info">PDF · DOCX · XLSX · TXT</div>
+      </div>
+      <input type="file" id="fi-import" accept=".pdf,.docx,.xlsx,.xls,.txt,.doc,.csv" style="display:none" onchange="handleImportDoc(this.files[0])">
+      <div id="import-doc-ok" style="display:none;margin-top:8px;font-size:11px;color:#0F6E56;font-family:monospace"></div>
+    </div>
+    <button onclick="procesarImport()" style="width:100%;padding:9px;background:#185FA5;border:none;color:#fff;font-size:13px;margin-top:8px;border-radius:var(--border-radius-md)">Extraer indicadores del texto →</button>
+    <div id="import-prog" style="display:none;margin-top:10px">
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px" id="import-prog-label">Procesando...</div>
+      <div style="background:var(--color-background-secondary);border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px"><div id="import-prog-bar" style="height:100%;background:#185FA5;border-radius:99px;width:0%;transition:width .4s"></div></div>
+      <div id="import-paste-area" style="display:none">
+        <div style="font-size:12px;color:#185FA5;margin-bottom:6px;font-weight:500">Pega aquí el JSON de Claude:</div>
+        <textarea id="import-json" style="width:100%;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);color:var(--color-text-primary);font-family:monospace;font-size:11px;height:100px;resize:vertical" placeholder='{"indicadores":[]}'></textarea>
+        <button onclick="cargarImportJSON()" style="margin-top:8px;padding:8px 16px;background:#185FA5;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:13px">Cargar →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progreso análisis -->
+  <div id="comp-prog" style="display:none" class="card">
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px" id="comp-prog-label">Analizando...</div>
+    <div style="background:var(--color-background-secondary);border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px"><div id="comp-prog-bar" style="height:100%;background:#185FA5;border-radius:99px;width:0%;transition:width .4s"></div></div>
+    <div id="comp-log" style="font-family:monospace;font-size:11px;max-height:70px;overflow-y:auto;line-height:1.85;color:var(--color-text-secondary)"></div>
+    <div id="comp-paste" style="display:none;margin-top:10px">
+      <div style="font-size:12px;color:#185FA5;margin-bottom:6px;font-weight:500">Pega aquí el JSON de Claude:</div>
+      <textarea id="comp-json" style="width:100%;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);color:var(--color-text-primary);font-family:monospace;font-size:11px;height:120px;resize:vertical" placeholder='{"analisis":[],"resumen":""}'></textarea>
+      <button onclick="cargarAnalisis()" style="margin-top:8px;padding:8px 16px;background:#185FA5;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:13px">Cargar análisis →</button>
+    </div>
+  </div>
+
+  <!-- Resultados -->
+  <div id="comp-result" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)">Resultados del análisis</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="exportarComparacion()" style="background:#185FA5;color:#fff;border:none;padding:7px 14px;font-size:12px">Descargar HTML → PDF</button>
+          <button onclick="document.getElementById('comp-result').style.display='none'" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);padding:7px 14px;font-size:12px">↩ Volver</button>
+        </div>
+      </div>
+      <!-- Stats semáforo -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px" id="comp-stats"></div>
+      <!-- Resumen -->
+      <div id="comp-resumen-box" style="display:none;background:#E6F1FB;border:0.5px solid #85B7EB;border-radius:var(--border-radius-md);padding:12px;margin-bottom:14px;font-size:13px;color:#042C53;line-height:1.7"></div>
+      <!-- Filtros -->
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap" id="comp-filters"></div>
+      <!-- Tabla -->
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#E6F1FB">
+            <th style="padding:9px;text-align:left;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB">Indicador</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Meta</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Resultado real</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Avance</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Estado</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Sector</th>
+            <th style="padding:9px;text-align:left;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB">Observación</th>
+          </tr></thead>
+          <tbody id="comp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODO 2: COMPARAR DOCUMENTOS -->
+<div id="panel-docs" style="display:none">
+  <div class="card">
+    <div class="sec">1 · Documento base (referencia)</div>
+    <div style="display:flex;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:10px;width:fit-content">
+      <button id="d1-texto-btn" onclick="setDocMode('d1','texto')" style="border:none;border-radius:0;background:#185FA5;color:#fff;padding:6px 14px;font-size:12px">Pegar texto</button>
+      <button id="d1-doc-btn" onclick="setDocMode('d1','doc')" style="border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:6px 14px;font-size:12px">Subir documento</button>
+    </div>
+    <div id="d1-panel-texto"><textarea id="d1-txt" rows="6" placeholder="Pega el texto del documento base (informe anterior, línea base, etc.)..." style="resize:vertical;line-height:1.6"></textarea></div>
+    <div id="d1-panel-doc" style="display:none">
+      <div onclick="document.getElementById('fi-d1').click()" ondragover="event.preventDefault();this.style.borderColor='#185FA5'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';handleDocComp(event.dataTransfer.files[0],'d1')" style="border:1.5px dashed var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:18px;text-align:center;cursor:pointer;background:#E6F1FB">
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px" id="d1-doc-name">Arrastra el documento base</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)" id="d1-doc-info">PDF · DOCX · PPTX · XLSX · TXT</div>
+      </div>
+      <input type="file" id="fi-d1" accept=".pdf,.docx,.pptx,.xlsx,.txt,.doc" style="display:none" onchange="handleDocComp(this.files[0],'d1')">
+      <div id="d1-doc-ok" style="display:none;margin-top:6px;font-size:11px;color:#0F6E56;font-family:monospace"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec">2 · Documento a comparar (actual)</div>
+    <div style="display:flex;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:10px;width:fit-content">
+      <button id="d2-texto-btn" onclick="setDocMode('d2','texto')" style="border:none;border-radius:0;background:#185FA5;color:#fff;padding:6px 14px;font-size:12px">Pegar texto</button>
+      <button id="d2-doc-btn" onclick="setDocMode('d2','doc')" style="border:none;border-radius:0;background:transparent;color:var(--color-text-secondary);padding:6px 14px;font-size:12px">Subir documento</button>
+    </div>
+    <div id="d2-panel-texto"><textarea id="d2-txt" rows="6" placeholder="Pega el texto del documento actual (informe reciente, resultado, etc.)..." style="resize:vertical;line-height:1.6"></textarea></div>
+    <div id="d2-panel-doc" style="display:none">
+      <div onclick="document.getElementById('fi-d2').click()" ondragover="event.preventDefault();this.style.borderColor='#185FA5'" ondragleave="this.style.borderColor=''" ondrop="event.preventDefault();this.style.borderColor='';handleDocComp(event.dataTransfer.files[0],'d2')" style="border:1.5px dashed var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:18px;text-align:center;cursor:pointer;background:#E6F1FB">
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px" id="d2-doc-name">Arrastra el documento actual</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary)" id="d2-doc-info">PDF · DOCX · PPTX · XLSX · TXT</div>
+      </div>
+      <input type="file" id="fi-d2" accept=".pdf,.docx,.pptx,.xlsx,.txt,.doc" style="display:none" onchange="handleDocComp(this.files[0],'d2')">
+      <div id="d2-doc-ok" style="display:none;margin-top:6px;font-size:11px;color:#0F6E56;font-family:monospace"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec">3 · Sectores a comparar</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${['wash','salud','educacion','proteccion','grd','otros'].map(s=>`<div class="dc-chip on" data-v="${s}" onclick="toggleDcChip(this)" style="display:inline-flex;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid #1A75BB;background:#E6F1FB;color:#0C447C;transition:all .15s;user-select:none">${s.charAt(0).toUpperCase()+s.slice(1)}</div>`).join('')}
+    </div>
+  </div>
+
+  <button onclick="compararDocs()" style="width:100%;padding:12px;background:#185FA5;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:14px;font-weight:500;margin-bottom:12px">Comparar documentos →</button>
+
+  <div id="docs-prog" style="display:none" class="card">
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px" id="docs-prog-label">Procesando...</div>
+    <div style="background:var(--color-background-secondary);border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px"><div id="docs-prog-bar" style="height:100%;background:#185FA5;border-radius:99px;width:0%;transition:width .4s"></div></div>
+    <div id="docs-log" style="font-family:monospace;font-size:11px;max-height:70px;overflow-y:auto;line-height:1.85;color:var(--color-text-secondary)"></div>
+    <div id="docs-paste" style="display:none;margin-top:10px">
+      <div style="font-size:12px;color:#185FA5;margin-bottom:6px;font-weight:500">Pega aquí el JSON de Claude:</div>
+      <textarea id="docs-json" style="width:100%;padding:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);color:var(--color-text-primary);font-family:monospace;font-size:11px;height:120px;resize:vertical" placeholder='{"comparacion":[],"resumen":""}'></textarea>
+      <button onclick="cargarComparacionDocs()" style="margin-top:8px;padding:8px 16px;background:#185FA5;border:none;border-radius:var(--border-radius-md);color:#fff;font-size:13px">Cargar →</button>
+    </div>
+  </div>
+
+  <div id="docs-result" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)">Comparación de documentos</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="exportarDocs()" style="background:#185FA5;color:#fff;border:none;padding:7px 14px;font-size:12px;border-radius:var(--border-radius-md)">Descargar HTML → PDF</button>
+          <button onclick="document.getElementById('docs-result').style.display='none'" style="background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);padding:7px 14px;font-size:12px;border-radius:var(--border-radius-md)">↩ Volver</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px" id="docs-stats"></div>
+      <div id="docs-resumen-box" style="display:none;background:#E6F1FB;border:0.5px solid #85B7EB;border-radius:var(--border-radius-md);padding:12px;margin-bottom:12px;font-size:13px;color:#042C53;line-height:1.7"></div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap" id="docs-filters"></div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#E6F1FB">
+            <th style="padding:9px;text-align:left;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB">Indicador</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Doc. Base</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Doc. Actual</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Cambio</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Tendencia</th>
+            <th style="padding:9px;text-align:center;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB;white-space:nowrap">Sector</th>
+            <th style="padding:9px;text-align:left;color:#0C447C;font-weight:500;border-bottom:1.5px solid #85B7EB">Observación</th>
+          </tr></thead>
+          <tbody id="docs-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let modo='metas';
+let indicadoresComp=[];
+let importMode='texto',importDocText='';
+let d1Mode='texto',d2Mode='texto',d1Text='',d2Text='';
+let analisisData=[],analisisResumen='';
+let docsCompData=[],docsCompResumen='';
+let compFilter='todos',docsFilter='todos';
+let repNombre='',repPeriodo='';
+
+const SC={wash:'background:#E6F1FB;color:#0C447C',salud:'background:#E1F5EE;color:#085041',educacion:'background:#FAEEDA;color:#633806',proteccion:'background:#FBEAF0;color:#72243E',grd:'background:#FCEBEB;color:#A32D2D',otros:'background:#F1EFE8;color:#444441',general:'background:#F1EFE8;color:#444441'};
+
+// ── MODO ───────────────────────────────────────────────────
+function setModo(m){
+  modo=m;
+  ['metas','docs'].forEach(x=>{
+    const p=document.getElementById('panel-'+x),b=document.getElementById('modo-'+x);
+    if(p)p.style.display=x===m?'':'none';
+    if(b){b.style.background=x===m?'#185FA5':'transparent';b.style.color=x===m?'#fff':'var(--color-text-secondary)';}
+  });
+}
+
+// ── INDICADORES MANUALES ───────────────────────────────────
+let indId=0;
+function agregarIndicador(data={}){
+  indId++;
+  const id=indId;
+  const div=document.createElement('div');
+  div.id='ind-row-'+id;
+  div.style.cssText='background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px';
+  div.innerHTML=`
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
+      <div><label style="font-size:10px;color:var(--color-text-tertiary);display:block;margin-bottom:3px">Indicador *</label><input id="ind-nombre-${id}" value="${data.nombre||''}" placeholder="Nombre del indicador"/></div>
+      <div><label style="font-size:10px;color:var(--color-text-tertiary);display:block;margin-bottom:3px">Meta</label><input id="ind-meta-${id}" value="${data.meta||''}" placeholder="Ej: 500"/></div>
+      <div><label style="font-size:10px;color:var(--color-text-tertiary);display:block;margin-bottom:3px">Resultado real</label><input id="ind-real-${id}" value="${data.real||''}" placeholder="Ej: 420"/></div>
+      <div><label style="font-size:10px;color:var(--color-text-tertiary);display:block;margin-bottom:3px">Unidad</label><input id="ind-unidad-${id}" value="${data.unidad||''}" placeholder="%, personas..."/></div>
+      <div><label style="font-size:10px;color:var(--color-text-tertiary);display:block;margin-bottom:3px">Sector</label>
+        <select id="ind-sector-${id}" style="font-size:12px;padding:6px 8px">
+          <option value="wash" ${(data.sector||'wash')==='wash'?'selected':''}>WASH</option>
+          <option value="salud" ${data.sector==='salud'?'selected':''}>Salud</option>
+          <option value="educacion" ${data.sector==='educacion'?'selected':''}>Educación</option>
+          <option value="proteccion" ${data.sector==='proteccion'?'selected':''}>Protección</option>
+          <option value="grd" ${data.sector==='grd'?'selected':''}>GRD</option>
+          <option value="otros" ${data.sector==='otros'?'selected':''}>Otros</option>
+        </select>
+      </div>
+      <button onclick="document.getElementById('ind-row-${id}').remove()" style="background:var(--color-background-danger);color:var(--color-text-danger);border:0.5px solid var(--color-border-danger);padding:7px 10px;font-size:11px;align-self:end">✕</button>
+    </div>
+    ${data.descripcion!==undefined?`<div style="margin-top:8px"><label style="font-size:10px;color:var(--color-text-tertiary);display:block;margin-bottom:3px">Descripción / contexto (opcional)</label><input id="ind-desc-${id}" value="${data.descripcion||''}" placeholder="Contexto adicional del indicador" style="font-size:12px"/></div>`:''}
+  `;
+  document.getElementById('indicadores-list').appendChild(div);
+  indicadoresComp.push(id);
+}
+
+function getIndicadores(){
+  const rows=[...document.getElementById('indicadores-list').children];
+  return rows.map(row=>{
+    const id=row.id.replace('ind-row-','');
+    return{
+      nombre:document.getElementById('ind-nombre-'+id)?.value.trim()||'',
+      meta:document.getElementById('ind-meta-'+id)?.value.trim()||'',
+      real:document.getElementById('ind-real-'+id)?.value.trim()||'',
+      unidad:document.getElementById('ind-unidad-'+id)?.value.trim()||'',
+      sector:document.getElementById('ind-sector-'+id)?.value||'wash',
+      descripcion:document.getElementById('ind-desc-'+id)?.value.trim()||'',
+    };
+  }).filter(i=>i.nombre);
+}
+
+// ── IMPORT DESDE TEXTO ─────────────────────────────────────
+function importarDesdeTexto(){
+  const area=document.getElementById('import-text-area');
+  area.style.display=area.style.display==='none'?'':'none';
+}
+
+function setImportMode(m){
+  importMode=m;
+  ['texto','doc'].forEach(x=>{
+    const p=document.getElementById('it-panel-'+x),b=document.getElementById('it-'+x);
+    if(p)p.style.display=x===m?'':'none';
+    if(b){b.style.background=x===m?'#185FA5':'transparent';b.style.color=x===m?'#fff':'var(--color-text-secondary)';}
+  });
+}
+
+const MAX=120000;
+async function handleImportDoc(file){
+  if(!file)return;
+  document.getElementById('import-doc-name').textContent=file.name;
+  document.getElementById('import-doc-info').textContent='Leyendo...';
+  try{
+    let t=await extractText(file);
+    importDocText=t;
+    document.getElementById('import-doc-info').textContent=(file.size/1024).toFixed(0)+' KB · '+t.length.toLocaleString()+' chars';
+    document.getElementById('import-doc-ok').style.display='block';
+    document.getElementById('import-doc-ok').textContent='✓ Listo para extraer indicadores';
+  }catch(e){document.getElementById('import-doc-info').textContent='Error: '+e.message;}
+}
+
+async function extractText(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  let t='';
+  if(ext==='txt'||ext==='csv'){t=await file.text();}
+  else if(ext==='pdf'){
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+    for(let i=1;i<=Math.min(pdf.numPages,60);i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+='\n[Página '+i+']\n'+c.items.map(s=>s.str).join(' ')+'\n';if(t.length>MAX)break;}
+  }
+  else if(ext==='docx'||ext==='doc'){t=(await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;}
+  else if(ext==='pptx'){
+    const zip=await JSZip.loadAsync(await file.arrayBuffer());
+    const slides=Object.keys(zip.files).filter(n=>n.match(/ppt\/slides\/slide\d+\.xml$/)).sort((a,b)=>+a.match(/\d+/)[0]-+b.match(/\d+/)[0]);
+    for(let i=0;i<slides.length;i++){const xml=await zip.files[slides[i]].async('string');t+='\n[Diap '+(i+1)+']\n'+xml.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()+'\n';if(t.length>MAX)break;}
+  }
+  else if(ext==='xlsx'||ext==='xls'){
+    const zip=await JSZip.loadAsync(await file.arrayBuffer());
+    let strings=[];
+    if(zip.files['xl/sharedStrings.xml']){const xml=await zip.files['xl/sharedStrings.xml'].async('string');strings=(xml.match(/<t[^>]*>([^<]*)<\/t>/g)||[]).map(m=>m.replace(/<[^>]+>/g,''));}
+    const sheets=Object.keys(zip.files).filter(n=>n.match(/xl\/worksheets\/sheet\d+\.xml$/)).sort();
+    for(let s=0;s<sheets.length;s++){const xml=await zip.files[sheets[s]].async('string');t+='\n[Hoja '+(s+1)+']\n';const cells=xml.match(/<c [^>]*>[\s\S]*?<\/c>/g)||[];const rowData={};cells.forEach(cell=>{const r=cell.match(/r="([A-Z]+)(\d+)"/);const tv=cell.match(/t="s"/);const vM=cell.match(/<v>(\d+)<\/v>/);const vtM=cell.match(/<v>([^<]+)<\/v>/);if(r){const row=r[2];if(!rowData[row])rowData[row]=[];if(tv&&vM&&strings[parseInt(vM[1])]!==undefined){rowData[row].push(strings[parseInt(vM[1])]);}else if(vtM){rowData[row].push(vtM[1]);}}});Object.keys(rowData).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(row=>{t+=rowData[row].join('\t')+'\n';});if(t.length>MAX)break;}
+  }
+  else{t=await file.text();}
+  return t.length>MAX?t.slice(0,MAX):t;
+}
+
+function procesarImport(){
+  const texto=importMode==='texto'?document.getElementById('import-txt')?.value.trim():importDocText.trim();
+  if(!texto){alert('Agrega el texto o documento primero.');return;}
+  document.getElementById('import-prog').style.display='block';
+  document.getElementById('import-paste-area').style.display='none';
+  document.getElementById('import-prog-bar').style.width='50%';
+  document.getElementById('import-prog-label').textContent='Enviando a Claude...';
+  const prompt=`Extrae los indicadores con sus metas y resultados reales de este documento. Responde ÚNICAMENTE con JSON:\n{"indicadores":[{"nombre":"","meta":"","real":"","unidad":"","sector":"wash|salud|educacion|proteccion|grd|otros","descripcion":""}]}\n\nDOCUMENTO:\n${texto}`;
+  try{if(typeof sendPrompt==='function'){sendPrompt(prompt);document.getElementById('import-prog-bar').style.width='80%';document.getElementById('import-prog-label').textContent='Enviado — pega el JSON abajo';}else throw new Error('no');}
+  catch(e){navigator.clipboard.writeText(prompt).catch(()=>{});}
+  document.getElementById('import-paste-area').style.display='block';
+}
+
+function cargarImportJSON(){
+  const raw=document.getElementById('import-json')?.value.trim();
+  if(!raw){alert('Pega el JSON primero.');return;}
+  let parsed;
+  try{const m=raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:raw);}
+  catch(e){alert('JSON inválido.');return;}
+  const inds=parsed.indicadores||[];
+  if(!inds.length){alert('No se encontraron indicadores.');return;}
+  document.getElementById('indicadores-list').innerHTML='';
+  indicadoresComp=[];indId=0;
+  inds.forEach(i=>agregarIndicador(i));
+  document.getElementById('import-text-area').style.display='none';
+  document.getElementById('import-prog').style.display='none';
+  alert('✓ '+inds.length+' indicadores importados. Revisa y ajusta si es necesario.');
+}
+
+// ── ANÁLISIS METAS VS RESULTADOS ──────────────────────────
+function generarComparacion(){
+  const inds=getIndicadores();
+  if(!inds.length){alert('Agrega al menos un indicador.');return;}
+  repNombre=document.getElementById('rep-nombre')?.value.trim()||'Reporte';
+  repPeriodo=document.getElementById('rep-periodo')?.value.trim()||'';
+  document.getElementById('comp-prog').style.display='block';
+  document.getElementById('comp-result').style.display='none';
+  document.getElementById('comp-log').innerHTML='';
+  document.getElementById('comp-paste').style.display='none';
+  document.getElementById('comp-prog-bar').style.width='30%';
+  document.getElementById('comp-prog-label').textContent='Preparando análisis...';
+  compLog('Indicadores: '+inds.length);
+  const prompt=`Analiza el cumplimiento de metas de estos indicadores. Para cada uno calcula el % de avance y clasifica el estado.\n\nCRITERIOS DE ESTADO:\n- "logrado": avance ≥ 90%\n- "en_progreso": avance entre 60% y 89%\n- "critico": avance < 60%\n- "sin_dato": si falta meta o resultado real\n\nResponde ÚNICAMENTE con este JSON:\n{"analisis":[{"nombre":"","meta":"","real":"","unidad":"","avance_pct":"","estado":"logrado|en_progreso|critico|sin_dato","sector":"","observacion":"observación breve y concreta de máximo 15 palabras"}],"resumen":"resumen ejecutivo de 3-4 líneas del desempeño general"}\n\nINDICADORES:\n${JSON.stringify(inds,null,2)}`;
+  document.getElementById('comp-prog-bar').style.width='60%';
+  document.getElementById('comp-prog-label').textContent='Enviando a Claude...';
+  compLog('Enviando análisis...');
+  try{if(typeof sendPrompt==='function'){sendPrompt(prompt);document.getElementById('comp-prog-bar').style.width='80%';document.getElementById('comp-prog-label').textContent='Enviado — pega el JSON abajo';compLog('✓ Enviado a Claude');}else throw new Error('no');}
+  catch(e){navigator.clipboard.writeText(prompt).then(()=>{compLog('✓ Copiado al portapapeles','#BA7517');}).catch(()=>{});}
+  compLog('Pega el JSON cuando Claude responda','#BA7517');
+  document.getElementById('comp-paste').style.display='block';
+}
+
+function compLog(msg,c='#0F6E56'){const b=document.getElementById('comp-log');if(!b)return;const d=document.createElement('div');d.style.color=c;d.textContent='› '+msg;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+
+function cargarAnalisis(){
+  const raw=document.getElementById('comp-json')?.value.trim();
+  if(!raw){alert('Pega el JSON primero.');return;}
+  let parsed;
+  try{const m=raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:raw);}
+  catch(e){alert('JSON inválido.');return;}
+  analisisData=parsed.analisis||[];
+  analisisResumen=parsed.resumen||'';
+  if(!analisisData.length){alert('Sin datos de análisis.');return;}
+  document.getElementById('comp-prog-bar').style.width='100%';
+  document.getElementById('comp-prog-label').textContent='¡Análisis completado!';
+  document.getElementById('comp-paste').style.display='none';
+  setTimeout(mostrarComparacion,300);
+}
+
+function mostrarComparacion(){
+  const logrado=analisisData.filter(i=>i.estado==='logrado').length;
+  const enProg=analisisData.filter(i=>i.estado==='en_progreso').length;
+  const critico=analisisData.filter(i=>i.estado==='critico').length;
+  const sinDato=analisisData.filter(i=>i.estado==='sin_dato').length;
+
+  document.getElementById('comp-stats').innerHTML=[
+    {n:logrado,l:'Logrados',c:'#0F6E56',bg:'#E1F5EE'},
+    {n:enProg,l:'En progreso',c:'#854F0B',bg:'#FAEEDA'},
+    {n:critico,l:'Críticos',c:'#A32D2D',bg:'#FCEBEB'},
+    {n:analisisData.length,l:'Total',c:'#185FA5',bg:'#E6F1FB'},
+  ].map(s=>`<div style="background:${s.bg};border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px;text-align:center"><div style="font-size:22px;font-weight:500;color:${s.c}">${s.n}</div><div style="font-size:10px;color:var(--color-text-tertiary);margin-top:2px">${s.l}</div></div>`).join('');
+
+  const resBox=document.getElementById('comp-resumen-box');
+  if(analisisResumen&&resBox){resBox.textContent=analisisResumen;resBox.style.display='block';}
+
+  compFilter='todos';
+  document.getElementById('comp-filters').innerHTML=[
+    {f:'todos',l:'Todos ('+analisisData.length+')'},
+    {f:'logrado',l:'Logrados ('+logrado+')'},
+    {f:'en_progreso',l:'En progreso ('+enProg+')'},
+    {f:'critico',l:'Críticos ('+critico+')'},
+  ].map((t,i)=>`<button onclick="setCompFilter('${t.f}',this)" style="padding:5px 12px;border-radius:99px;font-size:11px;border:0.5px solid ${i===0?'#185FA5':'var(--color-border-tertiary)'};background:${i===0?'#185FA5':'var(--color-background-secondary)'};color:${i===0?'#fff':'var(--color-text-secondary)'};cursor:pointer">${t.l}</button>`).join('');
+
+  renderTablaComp();
+  document.getElementById('comp-prog').style.display='none';
+  document.getElementById('comp-result').style.display='block';
+}
+
+function setCompFilter(f,el){compFilter=f;document.querySelectorAll('#comp-filters button').forEach(b=>{const on=b===el;b.style.background=on?'#185FA5':'var(--color-background-secondary)';b.style.color=on?'#fff':'var(--color-text-secondary)';b.style.borderColor=on?'#185FA5':'var(--color-border-tertiary)';});renderTablaComp();}
+
+function semaforoColor(estado){return estado==='logrado'?{bg:'#E1F5EE',c:'#0F6E56',label:'Logrado'}:estado==='en_progreso'?{bg:'#FAEEDA',c:'#854F0B',label:'En progreso'}:estado==='critico'?{bg:'#FCEBEB',c:'#A32D2D',label:'Crítico'}:{bg:'#F1EFE8',c:'#5F5E5A',label:'Sin dato'};}
+
+function renderTablaComp(){
+  const data=compFilter==='todos'?analisisData:analisisData.filter(i=>i.estado===compFilter);
+  const tbody=document.getElementById('comp-tbody');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--color-text-tertiary)">Sin indicadores en esta categoría</td></tr>';return;}
+  tbody.innerHTML=data.map((ind,i)=>{
+    const sem=semaforoColor(ind.estado);
+    const pct=parseFloat(ind.avance_pct)||0;
+    const sc=SC[ind.sector||'otros']||SC.otros;
+    return`<tr style="background:${i%2===0?'var(--color-background-primary)':'var(--color-background-secondary)'};border-bottom:0.5px solid var(--color-border-tertiary)">
+      <td style="padding:9px;font-weight:500;color:var(--color-text-primary);max-width:200px;line-height:1.4">${ind.nombre||'—'}</td>
+      <td style="padding:9px;text-align:center;font-size:13px;color:var(--color-text-secondary);white-space:nowrap">${ind.meta||'—'} ${ind.unidad||''}</td>
+      <td style="padding:9px;text-align:center;font-weight:500;font-size:13px;color:var(--color-text-primary);white-space:nowrap">${ind.real||'—'} ${ind.unidad||''}</td>
+      <td style="padding:9px;text-align:center">
+        <div style="font-weight:500;font-size:14px;color:${sem.c};margin-bottom:3px">${ind.avance_pct||'—'}${ind.avance_pct&&!ind.avance_pct.includes('%')?'%':''}</div>
+        ${pct>0?`<div style="height:4px;background:var(--color-background-secondary);border-radius:99px;overflow:hidden;width:80px;margin:0 auto"><div style="height:100%;width:${Math.min(pct,100)}%;background:${sem.c};border-radius:99px"></div></div>`:''}
+      </td>
+      <td style="padding:9px;text-align:center"><span style="font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500;background:${sem.bg};color:${sem.c};border:0.5px solid ${sem.c}44">${sem.label}</span></td>
+      <td style="padding:9px;text-align:center"><span style="font-size:10px;padding:2px 7px;border-radius:99px;${sc}">${ind.sector||'—'}</span></td>
+      <td style="padding:9px;font-size:11px;color:var(--color-text-secondary);max-width:180px">${ind.observacion||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportarComparacion(){
+  if(!analisisData.length){alert('Sin datos para exportar.');return;}
+  const logrado=analisisData.filter(i=>i.estado==='logrado').length;
+  const enProg=analisisData.filter(i=>i.estado==='en_progreso').length;
+  const critico=analisisData.filter(i=>i.estado==='critico').length;
+  const rows=analisisData.map((ind,i)=>{
+    const sem=semaforoColor(ind.estado);
+    const pct=parseFloat(ind.avance_pct)||0;
+    const sc=SC[ind.sector||'otros']||SC.otros;
+    return`<tr style="background:${i%2?'#f8fafc':'#fff'}">
+      <td style="padding:9px;font-weight:500">${ind.nombre||'—'}</td>
+      <td style="padding:9px;text-align:center">${ind.meta||'—'} ${ind.unidad||''}</td>
+      <td style="padding:9px;text-align:center;font-weight:700">${ind.real||'—'} ${ind.unidad||''}</td>
+      <td style="padding:9px;text-align:center;font-weight:700;color:${sem.c}">${ind.avance_pct||'—'}${ind.avance_pct&&!ind.avance_pct.includes('%')?'%':''}</td>
+      <td style="padding:9px;text-align:center"><span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;background:${sem.bg};color:${sem.c}">${sem.label}</span></td>
+      <td style="padding:9px;text-align:center"><span style="font-size:10px;padding:2px 7px;border-radius:99px;${sc}">${ind.sector||'—'}</span></td>
+      <td style="padding:9px;font-size:11px;color:#64748b">${ind.observacion||'—'}</td>
+    </tr>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comparación — ${repNombre}</title>
+<style>@page{margin:15mm 12mm}body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:28px;font-size:13px;line-height:1.5}
+h1{font-size:20px;font-weight:600;color:#185FA5;margin-bottom:4px}.meta{color:#64748b;font-size:12px;margin-bottom:14px}
+.note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;margin-bottom:14px;font-size:12px;color:#1d4ed8}
+.resumen{background:#E6F1FB;border:1px solid #85B7EB;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#042C53;line-height:1.7}
+.stats{display:flex;gap:12px;margin-bottom:16px}.stat{padding:12px 20px;border-radius:8px;text-align:center;min-width:90px}
+.sn{font-size:26px;font-weight:700}.sl{font-size:11px;margin-top:3px}
+table{width:100%;border-collapse:collapse;font-size:12px}th{background:#185FA5;color:#fff;padding:9px;text-align:left;font-weight:500}
+td{border-bottom:1px solid #e2e8f0;vertical-align:top}
+.footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between}
+@media print{.note{display:none}body{padding:0}}</style></head><body>
+<h1>Comparación de resultados</h1>
+<div class="meta"><strong>${repNombre}</strong>${repPeriodo?' · '+repPeriodo:''} · Frank Sanchez · WASH · UNICEF Tumbes · ${new Date().toLocaleString('es-PE')}</div>
+<div class="note">Para PDF: <strong>Ctrl+P → Guardar como PDF</strong></div>
+${analisisResumen?`<div class="resumen"><strong style="font-size:11px;color:#185FA5;text-transform:uppercase;letter-spacing:.5px">Resumen ejecutivo</strong><br>${analisisResumen}</div>`:''}
+<div class="stats">
+  <div class="stat" style="background:#E1F5EE;color:#0F6E56"><div class="sn">${logrado}</div><div class="sl">Logrados</div></div>
+  <div class="stat" style="background:#FAEEDA;color:#854F0B"><div class="sn">${enProg}</div><div class="sl">En progreso</div></div>
+  <div class="stat" style="background:#FCEBEB;color:#A32D2D"><div class="sn">${critico}</div><div class="sl">Críticos</div></div>
+  <div class="stat" style="background:#E6F1FB;color:#185FA5"><div class="sn">${analisisData.length}</div><div class="sl">Total</div></div>
+</div>
+<table><thead><tr><th>Indicador</th><th>Meta</th><th>Resultado real</th><th>Avance</th><th>Estado</th><th>Sector</th><th>Observación</th></tr></thead>
+<tbody>${rows}</tbody></table>
+<div class="footer"><span>Frank Sanchez · WASH · UNICEF Tumbes</span><span>${new Date().toLocaleDateString('es-PE')}</span></div>
+</body></html>`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  a.download='comparacion_'+repNombre.replace(/\s+/g,'_').slice(0,30)+'_'+new Date().toISOString().slice(0,10)+'.html';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ── COMPARAR DOCUMENTOS ────────────────────────────────────
+function setDocMode(doc,m){
+  const prefix=doc+'-'+m;
+  ['texto','doc'].forEach(x=>{
+    const p=document.getElementById(doc+'-panel-'+x),b=document.getElementById(doc+'-'+x+'-btn');
+    if(p)p.style.display=x===m?'':'none';
+    if(b){b.style.background=x===m?'#185FA5':'transparent';b.style.color=x===m?'#fff':'var(--color-text-secondary)';}
+  });
+  if(doc==='d1')d1Mode=m;else d2Mode=m;
+}
+
+async function handleDocComp(file,doc){
+  if(!file)return;
+  document.getElementById(doc+'-doc-name').textContent=file.name;
+  document.getElementById(doc+'-doc-info').textContent='Leyendo...';
+  try{
+    const t=await extractText(file);
+    if(doc==='d1')d1Text=t;else d2Text=t;
+    document.getElementById(doc+'-doc-info').textContent=(file.size/1024).toFixed(0)+' KB · '+t.length.toLocaleString()+' chars';
+    document.getElementById(doc+'-doc-ok').style.display='block';
+    document.getElementById(doc+'-doc-ok').textContent='✓ Listo';
+  }catch(e){document.getElementById(doc+'-doc-info').textContent='Error: '+e.message;}
+}
+
+function toggleDcChip(el){el.classList.toggle('on');el.style.background=el.classList.contains('on')?'#E6F1FB':'var(--color-background-primary)';el.style.borderColor=el.classList.contains('on')?'#1A75BB':'var(--color-border-tertiary)';el.style.color=el.classList.contains('on')?'#0C447C':'var(--color-text-secondary)';}
+function getDcSectores(){return[...document.querySelectorAll('.dc-chip.on')].map(c=>c.dataset.v);}
+
+function compararDocs(){
+  const t1=d1Mode==='texto'?document.getElementById('d1-txt')?.value.trim():d1Text.trim();
+  const t2=d2Mode==='texto'?document.getElementById('d2-txt')?.value.trim():d2Text.trim();
+  if(!t1||!t2){alert('Agrega ambos documentos para comparar.');return;}
+  const sectores=getDcSectores();
+  document.getElementById('docs-prog').style.display='block';
+  document.getElementById('docs-result').style.display='none';
+  document.getElementById('docs-log').innerHTML='';
+  document.getElementById('docs-paste').style.display='none';
+  document.getElementById('docs-prog-bar').style.width='30%';
+  document.getElementById('docs-prog-label').textContent='Preparando comparación...';
+  docsLog('Sectores: '+sectores.join(', '));
+  const prompt=`Compara estos dos documentos e identifica todos los indicadores y cómo cambiaron entre el documento base y el actual.\n\nSECTORES A ANALIZAR: ${sectores.join(', ')}\n\nPARA CADA INDICADOR IDENTIFICA:\n- Si está solo en el documento base (eliminado)\n- Si está solo en el documento actual (nuevo)\n- Si está en ambos y cambió (mejoró, empeoró o se mantuvo)\n\nResponde ÚNICAMENTE con este JSON:\n{"comparacion":[{"nombre":"","valor_base":"","valor_actual":"","cambio":"","tendencia":"mejora|deterioro|sin_cambio|nuevo|eliminado","sector":"wash|salud|educacion|proteccion|grd|otros","observacion":"observación breve de máximo 15 palabras"}],"resumen":"resumen ejecutivo de 3-4 líneas de los cambios más relevantes"}\n\nDOCUMENTO BASE:\n${t1.slice(0,60000)}\n\n---\n\nDOCUMENTO ACTUAL:\n${t2.slice(0,60000)}`;
+  document.getElementById('docs-prog-bar').style.width='60%';
+  document.getElementById('docs-prog-label').textContent='Enviando a Claude...';
+  docsLog('Enviando comparación...');
+  try{if(typeof sendPrompt==='function'){sendPrompt(prompt);document.getElementById('docs-prog-bar').style.width='80%';document.getElementById('docs-prog-label').textContent='Enviado — pega el JSON abajo';docsLog('✓ Enviado a Claude');}else throw new Error('no');}
+  catch(e){navigator.clipboard.writeText(prompt).then(()=>{docsLog('✓ Copiado al portapapeles','#BA7517');}).catch(()=>{});}
+  docsLog('Pega el JSON cuando Claude responda','#BA7517');
+  document.getElementById('docs-paste').style.display='block';
+}
+
+function docsLog(msg,c='#0F6E56'){const b=document.getElementById('docs-log');if(!b)return;const d=document.createElement('div');d.style.color=c;d.textContent='› '+msg;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+
+function cargarComparacionDocs(){
+  const raw=document.getElementById('docs-json')?.value.trim();
+  if(!raw){alert('Pega el JSON primero.');return;}
+  let parsed;
+  try{const m=raw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);parsed=JSON.parse(m?m[0]:raw);}
+  catch(e){alert('JSON inválido.');return;}
+  docsCompData=parsed.comparacion||[];
+  docsCompResumen=parsed.resumen||'';
+  if(!docsCompData.length){alert('Sin datos de comparación.');return;}
+  document.getElementById('docs-prog-bar').style.width='100%';
+  document.getElementById('docs-prog-label').textContent='¡Comparación completada!';
+  document.getElementById('docs-paste').style.display='none';
+  setTimeout(mostrarComparacionDocs,300);
+}
+
+function tendenciaIcon(t){return t==='mejora'?{icon:'↑',bg:'#E1F5EE',c:'#0F6E56',label:'Mejora'}:t==='deterioro'?{icon:'↓',bg:'#FCEBEB',c:'#A32D2D',label:'Deterioro'}:t==='nuevo'?{icon:'★',bg:'#EEEDFE',c:'#3C3489',label:'Nuevo'}:t==='eliminado'?{icon:'✕',bg:'#FAEEDA',c:'#633806',label:'Eliminado'}:{icon:'→',bg:'#F1EFE8',c:'#5F5E5A',label:'Sin cambio'};}
+
+function mostrarComparacionDocs(){
+  const mejora=docsCompData.filter(i=>i.tendencia==='mejora').length;
+  const deterioro=docsCompData.filter(i=>i.tendencia==='deterioro').length;
+  const nuevo=docsCompData.filter(i=>i.tendencia==='nuevo').length;
+  const eliminado=docsCompData.filter(i=>i.tendencia==='eliminado').length;
+
+  document.getElementById('docs-stats').innerHTML=[
+    {n:mejora,l:'Mejoran',c:'#0F6E56',bg:'#E1F5EE'},
+    {n:deterioro,l:'Deterioran',c:'#A32D2D',bg:'#FCEBEB'},
+    {n:nuevo,l:'Nuevos',c:'#3C3489',bg:'#EEEDFE'},
+    {n:eliminado,l:'Eliminados',c:'#633806',bg:'#FAEEDA'},
+  ].map(s=>`<div style="background:${s.bg};border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px;text-align:center"><div style="font-size:22px;font-weight:500;color:${s.c}">${s.n}</div><div style="font-size:10px;color:var(--color-text-tertiary);margin-top:2px">${s.l}</div></div>`).join('');
+
+  const resBox=document.getElementById('docs-resumen-box');
+  if(docsCompResumen&&resBox){resBox.textContent=docsCompResumen;resBox.style.display='block';}
+
+  docsFilter='todos';
+  document.getElementById('docs-filters').innerHTML=[
+    {f:'todos',l:'Todos ('+docsCompData.length+')'},
+    {f:'mejora',l:'Mejoran ('+mejora+')'},
+    {f:'deterioro',l:'Deterioran ('+deterioro+')'},
+    {f:'nuevo',l:'Nuevos ('+nuevo+')'},
+    {f:'eliminado',l:'Eliminados ('+eliminado+')'},
+  ].map((t,i)=>`<button onclick="setDocsFilter('${t.f}',this)" style="padding:5px 12px;border-radius:99px;font-size:11px;border:0.5px solid ${i===0?'#185FA5':'var(--color-border-tertiary)'};background:${i===0?'#185FA5':'var(--color-background-secondary)'};color:${i===0?'#fff':'var(--color-text-secondary)'};cursor:pointer">${t.l}</button>`).join('');
+
+  renderTablaComparacion();
+  document.getElementById('docs-prog').style.display='none';
+  document.getElementById('docs-result').style.display='block';
+}
+
+function setDocsFilter(f,el){docsFilter=f;document.querySelectorAll('#docs-filters button').forEach(b=>{const on=b===el;b.style.background=on?'#185FA5':'var(--color-background-secondary)';b.style.color=on?'#fff':'var(--color-text-secondary)';b.style.borderColor=on?'#185FA5':'var(--color-border-tertiary)';});renderTablaComparacion();}
+
+function renderTablaComparacion(){
+  const data=docsFilter==='todos'?docsCompData:docsCompData.filter(i=>i.tendencia===docsFilter);
+  const tbody=document.getElementById('docs-tbody');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--color-text-tertiary)">Sin indicadores en esta categoría</td></tr>';return;}
+  tbody.innerHTML=data.map((ind,i)=>{
+    const tend=tendenciaIcon(ind.tendencia);
+    const sc=SC[ind.sector||'otros']||SC.otros;
+    return`<tr style="background:${i%2===0?'var(--color-background-primary)':'var(--color-background-secondary)'};border-bottom:0.5px solid var(--color-border-tertiary)">
+      <td style="padding:9px;font-weight:500;color:var(--color-text-primary);max-width:200px;line-height:1.4">${ind.nombre||'—'}</td>
+      <td style="padding:9px;text-align:center;font-size:13px;color:var(--color-text-secondary);white-space:nowrap">${ind.valor_base||'—'}</td>
+      <td style="padding:9px;text-align:center;font-weight:500;font-size:13px;color:var(--color-text-primary);white-space:nowrap">${ind.valor_actual||'—'}</td>
+      <td style="padding:9px;text-align:center;font-size:13px;color:${tend.c};font-weight:500;white-space:nowrap">${ind.cambio||'—'}</td>
+      <td style="padding:9px;text-align:center"><span style="font-size:14px;font-weight:500;color:${tend.c};background:${tend.bg};padding:4px 10px;border-radius:99px;border:0.5px solid ${tend.c}44">${tend.icon} ${tend.label}</span></td>
+      <td style="padding:9px;text-align:center"><span style="font-size:10px;padding:2px 7px;border-radius:99px;${sc}">${ind.sector||'—'}</span></td>
+      <td style="padding:9px;font-size:11px;color:var(--color-text-secondary);max-width:180px">${ind.observacion||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportarDocs(){
+  if(!docsCompData.length){alert('Sin datos para exportar.');return;}
+  const rows=docsCompData.map((ind,i)=>{const tend=tendenciaIcon(ind.tendencia);const sc=SC[ind.sector||'otros']||SC.otros;return`<tr style="background:${i%2?'#f8fafc':'#fff'}"><td style="padding:9px;font-weight:500">${ind.nombre||'—'}</td><td style="padding:9px;text-align:center;color:#64748b">${ind.valor_base||'—'}</td><td style="padding:9px;text-align:center;font-weight:700">${ind.valor_actual||'—'}</td><td style="padding:9px;text-align:center;color:${tend.c};font-weight:500">${ind.cambio||'—'}</td><td style="padding:9px;text-align:center"><span style="padding:3px 10px;border-radius:99px;font-size:11px;background:${tend.bg};color:${tend.c}">${tend.icon} ${tend.label}</span></td><td style="padding:9px;text-align:center"><span style="font-size:10px;padding:2px 7px;border-radius:99px;${sc}">${ind.sector||'—'}</span></td><td style="padding:9px;font-size:11px;color:#64748b">${ind.observacion||'—'}</td></tr>`;}).join('');
+  const mejora=docsCompData.filter(i=>i.tendencia==='mejora').length,deterioro=docsCompData.filter(i=>i.tendencia==='deterioro').length,nuevo=docsCompData.filter(i=>i.tendencia==='nuevo').length,eliminado=docsCompData.filter(i=>i.tendencia==='eliminado').length;
+  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comparación de documentos</title><style>@page{margin:15mm 12mm}body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;padding:28px;font-size:13px;line-height:1.5}h1{font-size:20px;font-weight:600;color:#185FA5;margin-bottom:4px}.meta{color:#64748b;font-size:12px;margin-bottom:14px}.note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;margin-bottom:14px;font-size:12px;color:#1d4ed8}.resumen{background:#E6F1FB;border:1px solid #85B7EB;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#042C53;line-height:1.7}.stats{display:flex;gap:12px;margin-bottom:16px}.stat{padding:12px 20px;border-radius:8px;text-align:center;min-width:90px}.sn{font-size:26px;font-weight:700}.sl{font-size:11px;margin-top:3px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#185FA5;color:#fff;padding:9px;text-align:left;font-weight:500}td{border-bottom:1px solid #e2e8f0;vertical-align:top}.footer{margin-top:24px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between}@media print{.note{display:none}body{padding:0}}</style></head><body><h1>Comparación de documentos</h1><div class="meta">Frank Sanchez · WASH · UNICEF Tumbes · ${new Date().toLocaleString('es-PE')}</div><div class="note">Para PDF: <strong>Ctrl+P → Guardar como PDF</strong></div>${docsCompResumen?`<div class="resumen"><strong style="font-size:11px;color:#185FA5;text-transform:uppercase;letter-spacing:.5px">Resumen ejecutivo</strong><br>${docsCompResumen}</div>`:''}<div class="stats"><div class="stat" style="background:#E1F5EE;color:#0F6E56"><div class="sn">${mejora}</div><div class="sl">Mejoran</div></div><div class="stat" style="background:#FCEBEB;color:#A32D2D"><div class="sn">${deterioro}</div><div class="sl">Deterioran</div></div><div class="stat" style="background:#EEEDFE;color:#3C3489"><div class="sn">${nuevo}</div><div class="sl">Nuevos</div></div><div class="stat" style="background:#FAEEDA;color:#633806"><div class="sn">${eliminado}</div><div class="sl">Eliminados</div></div></div><table><thead><tr><th>Indicador</th><th>Doc. Base</th><th>Doc. Actual</th><th>Cambio</th><th>Tendencia</th><th>Sector</th><th>Observación</th></tr></thead><tbody>${rows}</tbody></table><div class="footer"><span>Frank Sanchez · WASH · UNICEF Tumbes</span><span>${new Date().toLocaleDateString('es-PE')}</span></div></body></html>`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));a.download='comparacion_documentos_'+new Date().toISOString().slice(0,10)+'.html';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// Inicializar con un indicador vacío
+agregarIndicador();
+</script>
