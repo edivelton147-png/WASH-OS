@@ -1,7 +1,7 @@
 [
   {
     "id": "gestor",
-    "name": "Gestor de tareas personal",
+    "name": "Gestor de tareas",
     "icon": "✅",
     "route": "gestor",
     "path": null,
