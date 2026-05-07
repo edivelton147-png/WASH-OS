@@ -137,7 +137,7 @@ const MODULE_RENDERERS={home:()=>renderHome(),gestor:()=>renderGestor(),revisor:
 const DYNAMIC_BADGES={gestor:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,historial:()=>`${historialReuniones.length+historialTraducciones.length+historialReportes.length+historialMejoras.length+historialIndicadores.length} registros · Sincronizado`};
 let MODULE_REGISTRY=[],DASHBOARD_MODULES=[],MODULE_BY_ID={},MODULE_BY_ROUTE={};
 function normalizeModule(m){const path=m.path||null;return{id:m.id,name:m.name,icon:m.icon,route:m.route||m.id,path,badge:m.badge||'',color:m.color||'#64748b',bg:m.bg||'#f1f5f9',desc:m.desc||'',actions:m.actions||[],action:m.action||'',render:MODULE_RENDERERS[m.id]||(path?renderToolFrame:null)};}
-function normalizeModule(m){return{id:m.id,name:m.name,icon:m.icon,route:m.route||m.id,path:m.path||null,badge:m.badge||'',color:m.color||'#64748b',bg:m.bg||'#f1f5f9',desc:m.desc||'',actions:m.actions||[]}}
+function normalizeModule(m){const path=m.path||null;return{id:m.id,name:m.name,icon:m.icon,route:m.route||m.id,path,badge:m.badge||'',color:m.color||'#64748b',bg:m.bg||'#f1f5f9',desc:m.desc||'',actions:m.actions||[]}}
 function buildModuleRegistry(config=DEFAULT_MODULES_CONFIG){
   const toolModules=(Array.isArray(config)?config:DEFAULT_MODULES_CONFIG).map(normalizeModule).filter(m=>m.id&&m.render);
   const coreModules=[{id:'home',route:'dashboard',name:'Dashboard',icon:'🏠',path:null,badge:'',color:'#1A75BB',bg:'#eff6ff',desc:'Panel principal',render:MODULE_RENDERERS.home},{id:'historial',route:'historial',name:'Historial',icon:'📚',path:null,badge:'Historial',color:'#6366f1',bg:'#eef2ff',desc:'Resúmenes, traducciones, reportes, mejoras e indicadores guardados.',render:MODULE_RENDERERS.historial}];
@@ -146,17 +146,23 @@ function buildModuleRegistry(config=DEFAULT_MODULES_CONFIG){
   MODULE_BY_ID=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.id,m]));
   MODULE_BY_ROUTE=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.route,m]));
 }
+
+function appBasePath(){const marker='/modules/';const path=window.location.pathname;const idx=path.indexOf(marker);return idx>=0?path.slice(0,idx):'';}
+function resolveAppPath(path){if(!path)return path;if(/^https?:|^data:|^blob:/.test(path))return path;const clean=path.replace(/^\.\//,'').replace(/^\//,'');return window.location.origin+appBasePath()+'/'+clean;}
 async function loadModuleConfig(){
-  try{
-    const url='/config/modules.json';
-    const res=await fetch(url,{cache:'no-cache'});
-    if(!res.ok)throw new Error('modules.json '+res.status);
+  const candidates=['/config/modules.json',resolveAppPath('/config/modules.json')];
+  for(const url of [...new Set(candidates)]){
+    try{
+      const res=await fetch(url,{cache:'no-cache'});
+      if(!res.ok)throw new Error('modules.json '+res.status);
 
-    buildModuleRegistry(await res.json());
+      buildModuleRegistry(await res.json());
+      return;
 
-  }catch(e){
-    buildModuleRegistry(DEFAULT_MODULES_CONFIG);
+    }catch(e){}
   }
+  buildModuleRegistry(DEFAULT_MODULES_CONFIG);
+
 }
 function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
 buildModuleRegistry(DEFAULT_MODULES_CONFIG);
@@ -278,7 +284,7 @@ function renderHome(){
 
 
 function renderToolFrame(module){
-  const url=new URL(module.path,window.location.href);
+  const url=new URL(resolveAppPath(module.path));
   url.searchParams.set('embedded','1');
   return`<div style="padding:16px">${topBar(module.name,module.icon)}
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;min-height:calc(100vh - 130px);box-shadow:0 10px 30px rgba(15,23,42,.06)">
@@ -847,7 +853,7 @@ function openTool(tool){
 
   if(!selected.path)return;
 
-  const url=new URL(selected.path,window.location.href);
+  const url=new URL(resolveAppPath(selected.path));
   url.searchParams.set('embedded','1');
 
   body.innerHTML=`
