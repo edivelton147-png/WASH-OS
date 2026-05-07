@@ -197,11 +197,6 @@ async function loadAIRouter(){
   });
 }
 
-  buildModuleRegistry(DEFAULT_MODULES_CONFIG);
-}
-function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
-buildModuleRegistry(DEFAULT_MODULES_CONFIG);
-
 async function loadAll(){
   try{const r=await window.storage.get('unicef-v6');if(r)tasks=JSON.parse(r.value);}catch(e){tasks=[];}
   try{const r=await window.storage.get('hist-reuniones');if(r)historialReuniones=JSON.parse(r.value);}catch(e){historialReuniones=[];}
