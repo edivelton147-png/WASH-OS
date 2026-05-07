@@ -136,6 +136,12 @@ async function saveHist(key,data){try{await window.storage.set(key,JSON.stringif
 
 function isVencida(t){return t.estado!=='Completada'&&t.cierre&&new Date(t.cierre)<new Date();}
 function go(v){view=v;renderApp();}
+function openDashboardCard(el){
+  const action=el&&el.dataset?el.dataset.action:'';
+  const target=el&&el.dataset?el.dataset.view:'';
+  if(action){openTool(action);return;}
+  if(target)go(target);
+}
 async function init(){await loadAll();renderApp();}
 
 function renderApp(){
@@ -180,7 +186,7 @@ function renderHome(){
       {id:'extractor',icon:'📊',name:'Extractor de indicadores',desc:'Extrae indicadores de cualquier documento.',color:'#0ea5e9',bg:'#f0f9ff',badge:'PDF · DOCX · PPTX · XLSX'},
       {id:'comparador',action:'comparador',icon:'📈',name:'Comparador de resultados',desc:'Analiza cambios, tendencias y variaciones entre períodos.',color:'#f97316',bg:'#fff7ed',badge:'Resultados · KPIs · Tendencias'},
       {id:'propuestas',action:'propuestas',icon:'📋',name:'Generador de propuestas',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',color:'#ec4899',bg:'#fdf2f8',badge:'Narrativas · Donantes · UNICEF'},
-    ].map(t=>`<div onclick="${t.action ? `openTool('${t.action}')` : `go('${t.id}')`}" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+    ].map(t=>`<div data-view="${t.id}" data-action="${t.action||''}" onclick="openDashboardCard(this)" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
       <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">${t.icon}</div>
       <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">${t.name}</div>
       <div style="font-size:11px;color:#64748b;line-height:1.5;margin-bottom:8px">${t.desc}</div>
@@ -759,38 +765,35 @@ justify-content:center;
 </div>
 
 <script>
-
 function openTool(tool){
 
   const modal=document.getElementById('modal');
   const body=document.getElementById('modalBody');
+  const tools={
+    comparador:{path:'./comparador_resultados.html',title:'Comparador de resultados'},
+    propuestas:{path:'./generador_propuestas.html',title:'Generador de propuestas'}
+  };
+  const selected=tools[tool];
 
+  if(!selected)return;
+
+  const url=new URL(selected.path,window.location.href);
+  url.searchParams.set('embedded','1');
+
+  body.innerHTML=`
+    <iframe
+      src="${url.href}"
+      title="${selected.title}"
+      style="width:100%;height:78vh;border:0;border-radius:12px;background:white;display:block"
+    ></iframe>
+  `;
   modal.style.display='flex';
-
-  if(tool==='comparador'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📈 Comparador de resultados</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#f8fafc;border-radius:12px;">
-        Próximamente integraremos aquí el comparador completo.
-      </div>
-    `;
-  }
-
-  if(tool==='propuestas'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📋 Generador de propuestas</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#fdf2f8;border-radius:12px;">
-        Próximamente integraremos aquí el generador completo.
-      </div>
-    `;
-  }
 
 }
 
 function closeModal(){
   document.getElementById('modal').style.display='none';
+  document.getElementById('modalBody').innerHTML='';
 }
 
 </script>

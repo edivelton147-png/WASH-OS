@@ -1,5 +1,6 @@
 
 <style>
+:root{--color-background-primary:#fff;--color-background-secondary:#f8fafc;--color-background-tertiary:#f0f4f8;--color-text-primary:#1e293b;--color-text-secondary:#64748b;--color-text-tertiary:#94a3b8;--color-border-tertiary:#e2e8f0;--border-radius-md:8px;--border-radius-lg:12px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--color-background-tertiary);color:var(--color-text-primary);padding:20px;min-height:100vh}
 input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:7px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
@@ -7,9 +8,14 @@ input:focus,select:focus,textarea:focus{border-color:#0ea5e9;box-shadow:0 0 0 2p
 button{font-family:inherit;cursor:pointer;border-radius:var(--border-radius-md);transition:all .15s;font-size:13px}
 .card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px;margin-bottom:12px}
 .sec{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+html.embedded body{background:transparent;padding:0;min-height:auto}
+html.embedded .embed-hide{display:none!important}
 </style>
+<script>
+try{if(new URLSearchParams(window.location.search).get('embedded')==='1'||window.self!==window.top)document.documentElement.classList.add('embedded');}catch(e){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.classList.add('embedded');}
+</script>
 
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--color-border-tertiary)">
+<div class="embed-hide" style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--color-border-tertiary)">
   <div style="width:40px;height:40px;border-radius:var(--border-radius-md);background:#E6F1FB;display:flex;align-items:center;justify-content:center;flex-shrink:0">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="#185FA5"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
   </div>
