@@ -136,6 +136,7 @@ const DEFAULT_MODULES_CONFIG=[];
 const MODULE_RENDERERS={home:()=>renderHome(),gestor:()=>renderGestor(),revisor:()=>renderRevisor(),mejorador:()=>renderMejorador(),traductor:()=>renderTraductor(),reuniones:()=>renderReuniones(),extractor:()=>renderExtractor(),comparador:m=>renderToolFrame(m),propuestas:m=>renderToolFrame(m),historial:()=>renderHistorial()};
 const DYNAMIC_BADGES={gestor:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,historial:()=>`${historialReuniones.length+historialTraducciones.length+historialReportes.length+historialMejoras.length+historialIndicadores.length} registros · Sincronizado`};
 let MODULE_REGISTRY=[],DASHBOARD_MODULES=[],MODULE_BY_ID={},MODULE_BY_ROUTE={};
+function normalizeModule(m){const path=m.path||null;return{id:m.id,name:m.name,icon:m.icon,route:m.route||m.id,path,badge:m.badge||'',color:m.color||'#64748b',bg:m.bg||'#f1f5f9',desc:m.desc||'',actions:m.actions||[],action:m.action||'',render:MODULE_RENDERERS[m.id]||(path?renderToolFrame:null)};}
 function normalizeModule(m){return{id:m.id,name:m.name,icon:m.icon,route:m.route||m.id,path:m.path||null,badge:m.badge||'',color:m.color||'#64748b',bg:m.bg||'#f1f5f9',desc:m.desc||'',actions:m.actions||[],action:m.action||'',render:MODULE_RENDERERS[m.id]};}
 function buildModuleRegistry(config=DEFAULT_MODULES_CONFIG){
   const toolModules=(Array.isArray(config)?config:DEFAULT_MODULES_CONFIG).map(normalizeModule).filter(m=>m.id&&m.render);
