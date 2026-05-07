@@ -1,0 +1,98 @@
+[
+  {
+    "id": "gestor",
+    "name": "Gestor de tareas",
+    "icon": "✅",
+    "route": "gestor",
+    "path": null,
+    "badge": "Tareas",
+    "color": "#10b981",
+    "bg": "#ecfdf5",
+    "desc": "Organiza, cronometra y reporta actividades WASH.",
+    "actions": []
+  },
+  {
+    "id": "revisor",
+    "name": "Revisor de documentos",
+    "icon": "🔍",
+    "route": "revisor",
+    "path": null,
+    "badge": "PDF · DOCX · PPTX",
+    "color": "#1A75BB",
+    "bg": "#eff6ff",
+    "desc": "Detecta errores y contradicciones.",
+    "actions": []
+  },
+  {
+    "id": "mejorador",
+    "name": "Mejorador de textos",
+    "icon": "✍️",
+    "route": "mejorador",
+    "path": null,
+    "badge": "Texto · Word · PPTX",
+    "color": "#8b5cf6",
+    "bg": "#f5f3ff",
+    "desc": "Mejora estilo y redacción. 5 estilos.",
+    "actions": []
+  },
+  {
+    "id": "traductor",
+    "name": "Traductor WASH / ONU",
+    "icon": "🌐",
+    "route": "traductor",
+    "path": null,
+    "badge": "50+ términos WASH",
+    "color": "#f59e0b",
+    "bg": "#fffbeb",
+    "desc": "Inglés ↔ Español con glosario técnico.",
+    "actions": []
+  },
+  {
+    "id": "reuniones",
+    "name": "Resumen de reuniones",
+    "icon": "🎙",
+    "route": "reuniones",
+    "path": null,
+    "badge": "Texto · Doc · Audio",
+    "color": "#14b8a6",
+    "bg": "#f0fdfa",
+    "desc": "Transcripciones, actas, notas y audio.",
+    "actions": []
+  },
+  {
+    "id": "extractor",
+    "name": "Extractor de indicadores",
+    "icon": "📊",
+    "route": "extractor",
+    "path": null,
+    "badge": "PDF · DOCX · PPTX · XLSX",
+    "color": "#0ea5e9",
+    "bg": "#f0f9ff",
+    "desc": "Extrae indicadores de cualquier documento.",
+    "actions": []
+  },
+  {
+    "id": "comparador",
+    "name": "Comparador de resultados",
+    "icon": "📈",
+    "route": "comparador",
+    "path": "/modules/comparador_resultados.html",
+    "badge": "Resultados · KPIs · Tendencias",
+    "color": "#f97316",
+    "bg": "#fff7ed",
+    "desc": "Analiza cambios, tendencias y variaciones entre períodos.",
+    "actions": []
+  },
+  {
+    "id": "propuestas",
+    "name": "Generador de propuestas",
+    "icon": "📋",
+    "route": "propuestas",
+    "path": "/modules/generador_propuestas.html",
+    "badge": "Narrativas · Donantes · UNICEF",
+    "color": "#ec4899",
+    "bg": "#fdf2f8",
+    "desc": "Genera propuestas técnicas y narrativas tipo UNICEF.",
+    "actions": []
+  }
+]
