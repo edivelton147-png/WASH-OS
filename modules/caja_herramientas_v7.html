@@ -141,6 +141,7 @@ const DEFAULT_MODULES_CONFIG=[
   {id:'reuniones',name:'Resumen de reuniones',icon:'🎙',route:'reuniones',path:null,badge:'Texto · Doc · Audio',color:'#14b8a6',bg:'#f0fdfa',desc:'Transcripciones, actas, notas y audio.',actions:[]},
   {id:'extractor',name:'Extractor de indicadores',icon:'📊',route:'extractor',path:null,badge:'PDF · DOCX · PPTX · XLSX',color:'#0ea5e9',bg:'#f0f9ff',desc:'Extrae indicadores de cualquier documento.',actions:[]},
   {id:'comparador',name:'Comparador de resultados',icon:'📈',route:'comparador',path:'/modules/comparador_resultados.html',badge:'Resultados · KPIs · Tendencias',color:'#f97316',bg:'#fff7ed',desc:'Analiza cambios, tendencias y variaciones entre períodos.',actions:[]},
+
   {id:'propuestas',name:'Generador de propuestas',icon:'📋',route:'propuestas',path:'/modules/generador_propuestas.html',badge:'Narrativas · Donantes · UNICEF',color:'#ec4899',bg:'#fdf2f8',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',actions:[]}
 ];
 const MODULE_RENDERERS={home:()=>renderHome(),gestor:()=>renderGestorModule(),revisor:()=>renderRevisor(),mejorador:()=>renderMejorador(),traductor:()=>renderTraductor(),reuniones:()=>renderReuniones(),extractor:()=>renderExtractor(),comparador:m=>renderToolFrame(m),propuestas:m=>renderToolFrame(m),historial:()=>renderHistorial()};
@@ -165,6 +166,7 @@ function buildModuleRegistry(config){
   MODULE_BY_ID=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.id,m]));
   MODULE_BY_ROUTE=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.route,m]));
 }
+
 function appBasePath(){const marker='/modules/';const idx=window.location.pathname.indexOf(marker);return idx>=0?window.location.pathname.slice(0,idx):'';}
 function resolveAppPath(path){if(!path)return path;if(/^https?:|^data:|^blob:/.test(path))return path;const clean=path.replace(/^\.\//,'').replace(/^\//,'');return window.location.origin+appBasePath()+'/'+clean;}
 async function loadModuleConfig(){
@@ -172,6 +174,7 @@ async function loadModuleConfig(){
     try{
       const res=await fetch(url,{cache:'no-cache'});
       if(!res.ok)throw new Error('modules.json '+res.status);
+
       buildModuleRegistry(await res.json());
       return;
     }catch(e){}
@@ -193,6 +196,10 @@ async function loadAIRouter(){
     document.head.appendChild(script);
   });
 }
+
+  buildModuleRegistry(DEFAULT_MODULES_CONFIG);
+}
+function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
 buildModuleRegistry(DEFAULT_MODULES_CONFIG);
 
 async function loadAll(){
@@ -223,6 +230,7 @@ function openDashboardCard(el){
   if(target&&target!==view)go(target);
 }
 async function init(){await loadAIRouter();await loadAll();await loadModuleConfig();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
+async function init(){await loadAll();await loadModuleConfig();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
 
 function renderView(v,opts={}){
   const module=MODULE_BY_ID[v]||MODULE_BY_ROUTE[v]||MODULE_BY_ID.home;
