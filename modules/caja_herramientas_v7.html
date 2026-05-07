@@ -764,33 +764,29 @@ function openTool(tool){
 
   const modal=document.getElementById('modal');
   const body=document.getElementById('modalBody');
+  const tools={
+    comparador:{src:'comparador_resultados.html',title:'Comparador de resultados'},
+    propuestas:{src:'generador_propuestas.html',title:'Generador de propuestas'}
+  };
+  const selected=tools[tool];
+
+  if(!selected)return;
 
   modal.style.display='flex';
-
-  if(tool==='comparador'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📈 Comparador de resultados</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#f8fafc;border-radius:12px;">
-        Próximamente integraremos aquí el comparador completo.
-      </div>
-    `;
-  }
-
-  if(tool==='propuestas'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📋 Generador de propuestas</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#fdf2f8;border-radius:12px;">
-        Próximamente integraremos aquí el generador completo.
-      </div>
-    `;
-  }
+  body.innerHTML=`
+    <iframe
+      src="${selected.src}"
+      title="${selected.title}"
+      style="width:100%;height:78vh;border:0;border-radius:12px;background:white;display:block"
+      loading="lazy"
+    ></iframe>
+  `;
 
 }
 
 function closeModal(){
   document.getElementById('modal').style.display='none';
+  document.getElementById('modalBody').innerHTML='';
 }
 
 </script>
