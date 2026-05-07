@@ -7,6 +7,8 @@ input:focus,select:focus,textarea:focus{border-color:#1A75BB;box-shadow:0 0 0 2p
 button{font-family:inherit;cursor:pointer;border-radius:8px;transition:all .15s}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;transition:all .15s;user-select:none}
 .chip.on{border-color:#0ea5e9;background:rgba(14,165,233,.08);color:#0369a1}
+#app{transition:opacity .14s ease,transform .14s ease;will-change:opacity,transform}
+#app.view-transitioning{opacity:.985;transform:translateY(2px)}
 #modal{opacity:0;transition:opacity .18s ease;padding:24px}
 #modal.is-open{opacity:1}
 #modalContent{transform:translateY(10px) scale(.985);transition:transform .18s ease}
@@ -142,37 +144,48 @@ async function saveTasks(){try{await window.storage.set('unicef-v6',JSON.stringi
 async function saveHist(key,data){try{await window.storage.set(key,JSON.stringify(data));}catch(e){}}
 
 function isVencida(t){return t.estado!=='Completada'&&t.cierre&&new Date(t.cierre)<new Date();}
-function go(v){view=v;renderApp();}
-function openDashboardCard(el){
-  const action=el&&el.dataset?el.dataset.action:'';
-  const target=el&&el.dataset?el.dataset.view:'';
-  if(action){openTool(action);return;}
-  if(target)go(target);
-}
-async function init(){await loadAll();renderApp();}
 
 const ROUTES={dashboard:'home',home:'home',gestor:'gestor',revisor:'revisor',traductor:'traductor',reuniones:'reuniones',mejorador:'mejorador',extractor:'extractor',comparador:'comparador',propuestas:'propuestas',historial:'historial'};
 const VIEW_ROUTES={home:'dashboard',gestor:'gestor',revisor:'revisor',traductor:'traductor',reuniones:'reuniones',mejorador:'mejorador',extractor:'extractor',comparador:'comparador',propuestas:'propuestas',historial:'historial'};
+const scrollPositions={};
+let renderedView=null,routeFrame=null;
+if('scrollRestoration' in window.history)window.history.scrollRestoration='manual';
 function getViewRenderers(){return{home:renderHome,gestor:renderGestor,revisor:renderRevisor,traductor:renderTraductor,reuniones:renderReuniones,mejorador:renderMejorador,extractor:renderExtractor,comparador:renderComparador,propuestas:renderPropuestas,historial:renderHistorial};}
 function normalizeHashRoute(hash){const raw=(hash||'').replace(/^#\/?/,'').split(/[?#]/)[0].replace(/^\/+|\/+$/g,'')||'dashboard';return ROUTES[raw]||'home';}
 function routeForView(v){return VIEW_ROUTES[v]||'dashboard';}
-function go(v){const nextHash='#/'+routeForView(v);if(window.location.hash!==nextHash){window.location.hash=nextHash;return;}renderView(v);}
+function currentScrollY(){return window.pageYOffset||document.documentElement.scrollTop||document.body.scrollTop||0;}
+function saveViewScroll(){if(renderedView)scrollPositions[renderedView]=currentScrollY();}
+function go(v){const nextView=ROUTES[v]||(VIEW_ROUTES[v]?v:'home');const nextHash='#/'+routeForView(nextView);if(window.location.hash!==nextHash){window.location.hash=nextHash;return;}renderView(nextView,{force:true,preserveScroll:true});}
 function openDashboardCard(el){
   const action=el&&el.dataset?el.dataset.action:'';
   const target=el&&el.dataset?el.dataset.view:'';
   if(action){openTool(action);return;}
-  if(target)go(target);
+  if(target&&target!==view)go(target);
 }
 async function init(){await loadAll();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
 
-function renderView(v){
-  view=ROUTES[v]||v||'home';
+function renderView(v,opts={}){
+  const next=ROUTES[v]||(VIEW_ROUTES[v]?v:'home');
   const app=document.getElementById('app');
-  const map={home:renderHome,gestor:renderGestor,revisor:renderRevisor,traductor:renderTraductor,reuniones:renderReuniones,mejorador:renderMejorador,extractor:renderExtractor,comparador:renderComparador,propuestas:renderPropuestas,historial:renderHistorial};
+  const force=opts.force===true;
+  if(!force&&renderedView===next){view=next;return;}
+  const previousY=currentScrollY();
+  saveViewScroll();
+  view=next;
+  const map=getViewRenderers();
+  if(routeFrame)cancelAnimationFrame(routeFrame);
+  app.classList.add('view-transitioning');
   app.innerHTML=(map[view]||renderHome)();
   postRender();
+  renderedView=view;
+  const targetY=opts.preserveScroll?previousY:(scrollPositions[view]||0);
+  routeFrame=requestAnimationFrame(()=>{
+    window.scrollTo({top:targetY,left:0,behavior:'auto'});
+    app.classList.remove('view-transitioning');
+    routeFrame=null;
+  });
 }
-function renderApp(){renderView(view);}
+function renderApp(){renderView(view,{force:true,preserveScroll:true});}
 function syncRoute(){renderView(normalizeHashRoute(window.location.hash));}
 window.addEventListener('hashchange',syncRoute);
 
