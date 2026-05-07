@@ -7,6 +7,13 @@ input:focus,select:focus,textarea:focus{border-color:#1A75BB;box-shadow:0 0 0 2p
 button{font-family:inherit;cursor:pointer;border-radius:8px;transition:all .15s}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;transition:all .15s;user-select:none}
 .chip.on{border-color:#0ea5e9;background:rgba(14,165,233,.08);color:#0369a1}
+#modal{opacity:0;transition:opacity .18s ease;padding:24px}
+#modal.is-open{opacity:1}
+#modalContent{transform:translateY(10px) scale(.985);transition:transform .18s ease}
+#modal.is-open #modalContent{transform:translateY(0) scale(1)}
+#modalBody{height:100%;border-radius:16px;overflow:hidden;background:#f8fafc}
+.tool-frame{width:100%;height:100%;border:0;border-radius:16px;background:#f8fafc;display:block}
+@media(max-width:760px){#modal{padding:8px}#modalContent{width:100%!important;height:96vh!important;border-radius:16px!important;padding:8px!important}.tool-frame{border-radius:12px}}
 </style>
 <div style="
 position:sticky;
@@ -136,6 +143,12 @@ async function saveHist(key,data){try{await window.storage.set(key,JSON.stringif
 
 function isVencida(t){return t.estado!=='Completada'&&t.cierre&&new Date(t.cierre)<new Date();}
 function go(v){view=v;renderApp();}
+function openDashboardCard(el){
+  const action=el&&el.dataset?el.dataset.action:'';
+  const target=el&&el.dataset?el.dataset.view:'';
+  if(action){openTool(action);return;}
+  if(target)go(target);
+}
 async function init(){await loadAll();renderApp();}
 
 function renderApp(){
@@ -180,7 +193,7 @@ function renderHome(){
       {id:'extractor',icon:'📊',name:'Extractor de indicadores',desc:'Extrae indicadores de cualquier documento.',color:'#0ea5e9',bg:'#f0f9ff',badge:'PDF · DOCX · PPTX · XLSX'},
       {id:'comparador',action:'comparador',icon:'📈',name:'Comparador de resultados',desc:'Analiza cambios, tendencias y variaciones entre períodos.',color:'#f97316',bg:'#fff7ed',badge:'Resultados · KPIs · Tendencias'},
       {id:'propuestas',action:'propuestas',icon:'📋',name:'Generador de propuestas',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',color:'#ec4899',bg:'#fdf2f8',badge:'Narrativas · Donantes · UNICEF'},
-    ].map(t=>`<div onclick="${t.action ? `openTool('${t.action}')` : `go('${t.id}')`}" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+    ].map(t=>`<div data-view="${t.id}" data-action="${t.action||''}" onclick="openDashboardCard(this)" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
       <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">${t.icon}</div>
       <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">${t.name}</div>
       <div style="font-size:11px;color:#64748b;line-height:1.5;margin-bottom:8px">${t.desc}</div>
@@ -721,32 +734,36 @@ top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(15,23,42,.7);
+background:rgba(15,23,42,.66);
+backdrop-filter:blur(6px);
 z-index:99999;
 align-items:center;
 justify-content:center;
 ">
 
   <div id="modalContent" style="
-  width:90%;
-  max-width:1000px;
-  background:white;
-  border-radius:18px;
-  padding:24px;
-  max-height:90vh;
-  overflow:auto;
+  width:min(96vw,1280px);
+  height:min(92vh,920px);
+  background:#f8fafc;
+  border:1px solid rgba(226,232,240,.9);
+  border-radius:22px;
+  padding:10px;
+  overflow:hidden;
   position:relative;
+  box-shadow:0 28px 90px rgba(15,23,42,.38);
   ">
 
     <button onclick="closeModal()" style="
     position:absolute;
-    top:14px;
-    right:14px;
+    top:18px;
+    right:18px;
+    z-index:2;
     border:none;
-    background:#ef4444;
+    background:rgba(239,68,68,.94);
     color:white;
-    padding:8px 12px;
-    border-radius:8px;
+    padding:7px 12px;
+    border-radius:999px;
+    box-shadow:0 10px 28px rgba(15,23,42,.22);
     cursor:pointer;
     ">
       Cerrar
@@ -759,38 +776,43 @@ justify-content:center;
 </div>
 
 <script>
-
+let modalCloseTimer=null;
 function openTool(tool){
 
   const modal=document.getElementById('modal');
   const body=document.getElementById('modalBody');
+  if(modalCloseTimer){clearTimeout(modalCloseTimer);modalCloseTimer=null;}
+  const tools={
+    comparador:{path:'./comparador_resultados.html',title:'Comparador de resultados'},
+    propuestas:{path:'./generador_propuestas.html',title:'Generador de propuestas'}
+  };
+  const selected=tools[tool];
 
+  if(!selected)return;
+
+  const url=new URL(selected.path,window.location.href);
+  url.searchParams.set('embedded','1');
+
+  body.innerHTML=`
+    <iframe
+      src="${url.href}"
+      title="${selected.title}"
+      class="tool-frame"
+    ></iframe>
+  `;
   modal.style.display='flex';
-
-  if(tool==='comparador'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📈 Comparador de resultados</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#f8fafc;border-radius:12px;">
-        Próximamente integraremos aquí el comparador completo.
-      </div>
-    `;
-  }
-
-  if(tool==='propuestas'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📋 Generador de propuestas</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#fdf2f8;border-radius:12px;">
-        Próximamente integraremos aquí el generador completo.
-      </div>
-    `;
-  }
+  requestAnimationFrame(()=>modal.classList.add('is-open'));
 
 }
 
 function closeModal(){
-  document.getElementById('modal').style.display='none';
+  const modal=document.getElementById('modal');
+  modal.classList.remove('is-open');
+  modalCloseTimer=setTimeout(()=>{
+    modal.style.display='none';
+    document.getElementById('modalBody').innerHTML='';
+    modalCloseTimer=null;
+  },180);
 }
 
 </script>
