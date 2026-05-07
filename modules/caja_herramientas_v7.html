@@ -765,20 +765,24 @@ function openTool(tool){
   const modal=document.getElementById('modal');
   const body=document.getElementById('modalBody');
   const tools={
+    comparador:{path:'./comparador_resultados.html',title:'Comparador de resultados'},
+    propuestas:{path:'./generador_propuestas.html',title:'Generador de propuestas'}
   };
   const selected=tools[tool];
 
   if(!selected)return;
 
-  modal.style.display='flex';
+  const url=new URL(selected.path,window.location.href);
+  url.searchParams.set('embedded','1');
+
   body.innerHTML=`
     <iframe
-      src="${selected.src}"
+      src="${url.href}"
       title="${selected.title}"
       style="width:100%;height:78vh;border:0;border-radius:12px;background:white;display:block"
-      loading="lazy"
     ></iframe>
   `;
+  modal.style.display='flex';
 
 }
 
