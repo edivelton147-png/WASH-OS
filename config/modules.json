@@ -94,5 +94,17 @@
     "bg": "#fdf2f8",
     "desc": "Genera propuestas técnicas y narrativas tipo UNICEF.",
     "actions": []
+  },
+  {
+    "id": "test",
+    "name": "Prueba JSON",
+    "icon": "🧪",
+    "route": "test",
+    "path": "./comparador_resultados.html",
+    "badge": "TEST",
+    "color": "#a78bfa",
+    "bg": "#f5f3ff",
+    "desc": "Módulo temporal para validar carga automática desde modules.json.",
+    "actions": []
   }
 ]

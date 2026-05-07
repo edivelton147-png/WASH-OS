@@ -148,11 +148,15 @@ function buildModuleRegistry(config=DEFAULT_MODULES_CONFIG){
 }
 async function loadModuleConfig(){
   try{
-    const url=new URL('../config/modules.json',window.location.href);
-    const res=await fetch(url.href,{cache:'no-cache'});
+    const url='/config/modules.json';
+    const res=await fetch(url,{cache:'no-cache'});
     if(!res.ok)throw new Error('modules.json '+res.status);
+
     buildModuleRegistry(await res.json());
-  }catch(e){buildModuleRegistry(DEFAULT_MODULES_CONFIG);}
+
+  }catch(e){
+    buildModuleRegistry(DEFAULT_MODULES_CONFIG);
+  }
 }
 function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
 buildModuleRegistry(DEFAULT_MODULES_CONFIG);
