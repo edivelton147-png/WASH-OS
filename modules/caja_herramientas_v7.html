@@ -153,7 +153,7 @@ async function init(){await loadAll();renderApp();}
 
 function renderApp(){
   const app=document.getElementById('app');
-  const map={home:renderHome,gestor:renderGestor,revisor:renderRevisor,traductor:renderTraductor,reuniones:renderReuniones,mejorador:renderMejorador,extractor:renderExtractor,historial:renderHistorial};
+  const map={home:renderHome,gestor:renderGestor,revisor:renderRevisor,traductor:renderTraductor,reuniones:renderReuniones,mejorador:renderMejorador,extractor:renderExtractor,comparador:renderComparador,propuestas:renderPropuestas,historial:renderHistorial};
   app.innerHTML=(map[view]||renderHome)();
   postRender();
 }
@@ -227,6 +227,19 @@ function renderHome(){
   <div style="text-align:center;font-size:11px;color:#94a3b8">Caja de Herramientas Frank · UNICEF Tumbes · v7.0 · 6 herramientas activas</div>
 </div>`;
 }
+
+
+function renderToolFrame(title,icon,path){
+  const url=new URL(path,window.location.href);
+  url.searchParams.set('embedded','1');
+  return`<div style="padding:16px">${topBar(title,icon)}
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;min-height:calc(100vh - 130px);box-shadow:0 10px 30px rgba(15,23,42,.06)">
+      <iframe src="${url.href}" title="${title}" style="width:100%;height:calc(100vh - 132px);min-height:720px;border:0;background:#f8fafc;display:block"></iframe>
+    </div>
+  </div>`;
+}
+function renderComparador(){return renderToolFrame('Comparador de resultados','📈','./comparador_resultados.html');}
+function renderPropuestas(){return renderToolFrame('Generador de propuestas','📋','./generador_propuestas.html');}
 
 // ── EXTRACTOR ──────────────────────────────────────────────
 function renderExtractor(){
