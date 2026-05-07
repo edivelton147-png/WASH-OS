@@ -7,6 +7,15 @@ input:focus,select:focus,textarea:focus{border-color:#1A75BB;box-shadow:0 0 0 2p
 button{font-family:inherit;cursor:pointer;border-radius:8px;transition:all .15s}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;transition:all .15s;user-select:none}
 .chip.on{border-color:#0ea5e9;background:rgba(14,165,233,.08);color:#0369a1}
+#app{transition:opacity .14s ease,transform .14s ease;will-change:opacity,transform}
+#app.view-transitioning{opacity:.985;transform:translateY(2px)}
+#modal{opacity:0;transition:opacity .18s ease;padding:24px}
+#modal.is-open{opacity:1}
+#modalContent{transform:translateY(10px) scale(.985);transition:transform .18s ease}
+#modal.is-open #modalContent{transform:translateY(0) scale(1)}
+#modalBody{height:100%;border-radius:16px;overflow:hidden;background:#f8fafc}
+.tool-frame{width:100%;height:100%;border:0;border-radius:16px;background:#f8fafc;display:block}
+@media(max-width:760px){#modal{padding:8px}#modalContent{width:100%!important;height:96vh!important;border-radius:16px!important;padding:8px!important}.tool-frame{border-radius:12px}}
 </style>
 <div style="
 position:sticky;
@@ -46,7 +55,7 @@ justify-content:space-between;
       Inicio
     </a>
 
-    <button style="
+    <button onclick="go('home')" style="
     background:#0ea5e9;
     color:white;
     border:none;
@@ -66,6 +75,7 @@ justify-content:space-between;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="native/gestor.js"></script>
 <script>
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -123,6 +133,54 @@ const ESTILOS={
 
 const SECTOR_COLORS={wash:'background:#E6F1FB;color:#0C447C',salud:'background:#E1F5EE;color:#085041',educacion:'background:#FAEEDA;color:#633806',proteccion:'background:#FBEAF0;color:#72243E',grd:'background:#FCEBEB;color:#A32D2D',otros:'background:#f1f5f9;color:#475569',general:'background:#f1f5f9;color:#475569'};
 
+const DEFAULT_MODULES_CONFIG=[
+  {id:'gestor',name:'Gestor de tareas',icon:'✅',route:'gestor',path:null,badge:'Tareas',color:'#10b981',bg:'#ecfdf5',desc:'Organiza, cronometra y reporta actividades WASH.',actions:[]},
+  {id:'revisor',name:'Revisor de documentos',icon:'🔍',route:'revisor',path:null,badge:'PDF · DOCX · PPTX',color:'#1A75BB',bg:'#eff6ff',desc:'Detecta errores y contradicciones.',actions:[]},
+  {id:'mejorador',name:'Mejorador de textos',icon:'✍️',route:'mejorador',path:null,badge:'Texto · Word · PPTX',color:'#8b5cf6',bg:'#f5f3ff',desc:'Mejora estilo y redacción. 5 estilos.',actions:[]},
+  {id:'traductor',name:'Traductor WASH / ONU',icon:'🌐',route:'traductor',path:null,badge:'50+ términos WASH',color:'#f59e0b',bg:'#fffbeb',desc:'Inglés ↔ Español con glosario técnico.',actions:[]},
+  {id:'reuniones',name:'Resumen de reuniones',icon:'🎙',route:'reuniones',path:null,badge:'Texto · Doc · Audio',color:'#14b8a6',bg:'#f0fdfa',desc:'Transcripciones, actas, notas y audio.',actions:[]},
+  {id:'extractor',name:'Extractor de indicadores',icon:'📊',route:'extractor',path:null,badge:'PDF · DOCX · PPTX · XLSX',color:'#0ea5e9',bg:'#f0f9ff',desc:'Extrae indicadores de cualquier documento.',actions:[]},
+  {id:'comparador',name:'Comparador de resultados',icon:'📈',route:'comparador',path:'/modules/comparador_resultados.html',badge:'Resultados · KPIs · Tendencias',color:'#f97316',bg:'#fff7ed',desc:'Analiza cambios, tendencias y variaciones entre períodos.',actions:[]},
+  {id:'propuestas',name:'Generador de propuestas',icon:'📋',route:'propuestas',path:'/modules/generador_propuestas.html',badge:'Narrativas · Donantes · UNICEF',color:'#ec4899',bg:'#fdf2f8',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',actions:[]}
+];
+const MODULE_RENDERERS={home:()=>renderHome(),gestor:()=>renderGestorModule(),revisor:()=>renderRevisor(),mejorador:()=>renderMejorador(),traductor:()=>renderTraductor(),reuniones:()=>renderReuniones(),extractor:()=>renderExtractor(),comparador:m=>renderToolFrame(m),propuestas:m=>renderToolFrame(m),historial:()=>renderHistorial()};
+const DYNAMIC_BADGES={gestor:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,historial:()=>`${historialReuniones.length+historialTraducciones.length+historialReportes.length+historialMejoras.length+historialIndicadores.length} registros · Sincronizado`};
+let MODULE_REGISTRY=[],DASHBOARD_MODULES=[],MODULE_BY_ID={},MODULE_BY_ROUTE={};
+function getModuleContext(){return{tasks,isVencida,fmtTime,topBar};}
+function renderGestorModule(){const renderer=window.WashModules&&window.WashModules.gestor&&window.WashModules.gestor.render;if(typeof renderer==='function'){try{return renderer(getModuleContext());}catch(e){console.warn('Fallo al renderizar gestor modular, usando fallback local.',e);}}return renderGestor();}
+function normalizeModule(m={}){
+  const id=m.id||'';
+  const path=m.path||null;
+  return{ id, name:m.name||id, icon:m.icon||'◻️', route:m.route||id, path, badge:m.badge||'', color:m.color||'#64748b', bg:m.bg||'#f1f5f9', desc:m.desc||'', actions:Array.isArray(m.actions)?m.actions:[], action:m.action||'', render:MODULE_RENDERERS[id]||(path?renderToolFrame:null) };
+}
+function buildModuleRegistry(config){
+  const source=Array.isArray(config)&&config.length?config:DEFAULT_MODULES_CONFIG;
+  const toolModules=source.map(normalizeModule).filter(m=>m.id&&m.render);
+  const coreModules=[
+    {id:'home',route:'dashboard',name:'Dashboard',icon:'🏠',path:null,badge:'',color:'#1A75BB',bg:'#eff6ff',desc:'Panel principal',render:MODULE_RENDERERS.home},
+    {id:'historial',route:'historial',name:'Historial',icon:'📚',path:null,badge:'Historial',color:'#6366f1',bg:'#eef2ff',desc:'Resúmenes, traducciones, reportes, mejoras e indicadores guardados.',render:MODULE_RENDERERS.historial}
+  ];
+  MODULE_REGISTRY=[coreModules[0],...toolModules,coreModules[1]];
+  DASHBOARD_MODULES=toolModules;
+  MODULE_BY_ID=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.id,m]));
+  MODULE_BY_ROUTE=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.route,m]));
+}
+function appBasePath(){const marker='/modules/';const idx=window.location.pathname.indexOf(marker);return idx>=0?window.location.pathname.slice(0,idx):'';}
+function resolveAppPath(path){if(!path)return path;if(/^https?:|^data:|^blob:/.test(path))return path;const clean=path.replace(/^\.\//,'').replace(/^\//,'');return window.location.origin+appBasePath()+'/'+clean;}
+async function loadModuleConfig(){
+  for(const url of [...new Set(['/config/modules.json',resolveAppPath('/config/modules.json')])]){
+    try{
+      const res=await fetch(url,{cache:'no-cache'});
+      if(!res.ok)throw new Error('modules.json '+res.status);
+      buildModuleRegistry(await res.json());
+      return;
+    }catch(e){}
+  }
+  buildModuleRegistry(DEFAULT_MODULES_CONFIG);
+}
+function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
+buildModuleRegistry(DEFAULT_MODULES_CONFIG);
+
 async function loadAll(){
   try{const r=await window.storage.get('unicef-v6');if(r)tasks=JSON.parse(r.value);}catch(e){tasks=[];}
   try{const r=await window.storage.get('hist-reuniones');if(r)historialReuniones=JSON.parse(r.value);}catch(e){historialReuniones=[];}
@@ -135,15 +193,47 @@ async function saveTasks(){try{await window.storage.set('unicef-v6',JSON.stringi
 async function saveHist(key,data){try{await window.storage.set(key,JSON.stringify(data));}catch(e){}}
 
 function isVencida(t){return t.estado!=='Completada'&&t.cierre&&new Date(t.cierre)<new Date();}
-function go(v){view=v;renderApp();}
-async function init(){await loadAll();renderApp();}
 
-function renderApp(){
-  const app=document.getElementById('app');
-  const map={home:renderHome,gestor:renderGestor,revisor:renderRevisor,traductor:renderTraductor,reuniones:renderReuniones,mejorador:renderMejorador,extractor:renderExtractor,historial:renderHistorial};
-  app.innerHTML=(map[view]||renderHome)();
-  postRender();
+const scrollPositions={};
+let renderedView=null,routeFrame=null;
+if('scrollRestoration' in window.history)window.history.scrollRestoration='manual';
+function normalizeHashRoute(hash){const raw=(hash||'').replace(/^#\/?/,'').split(/[?#]/)[0].replace(/^\/+|\/+$/g,'')||'dashboard';return (MODULE_BY_ROUTE[raw]||MODULE_BY_ID.home).id;}
+function routeForView(v){return (MODULE_BY_ID[v]||MODULE_BY_ID.home).route;}
+function currentScrollY(){return window.pageYOffset||document.documentElement.scrollTop||document.body.scrollTop||0;}
+function saveViewScroll(){if(renderedView)scrollPositions[renderedView]=currentScrollY();}
+function go(v){const module=MODULE_BY_ID[v]||MODULE_BY_ROUTE[v]||MODULE_BY_ID.home;const nextView=module.id;const nextHash='#/'+module.route;if(window.location.hash!==nextHash){window.location.hash=nextHash;return;}renderView(nextView,{force:true,preserveScroll:true});}
+function openDashboardCard(el){
+  const action=el&&el.dataset?el.dataset.action:'';
+  const target=el&&el.dataset?el.dataset.view:'';
+  if(action){openTool(action);return;}
+  if(target&&target!==view)go(target);
 }
+async function init(){await loadAll();await loadModuleConfig();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
+
+function renderView(v,opts={}){
+  const module=MODULE_BY_ID[v]||MODULE_BY_ROUTE[v]||MODULE_BY_ID.home;
+  const next=module.id;
+  const app=document.getElementById('app');
+  const force=opts.force===true;
+  if(!force&&renderedView===next){view=next;return;}
+  const previousY=currentScrollY();
+  saveViewScroll();
+  view=next;
+  if(routeFrame)cancelAnimationFrame(routeFrame);
+  app.classList.add('view-transitioning');
+  app.innerHTML=(module.render?module.render(module):renderHome());
+  postRender();
+  renderedView=view;
+  const targetY=opts.preserveScroll?previousY:(scrollPositions[view]||0);
+  routeFrame=requestAnimationFrame(()=>{
+    window.scrollTo({top:targetY,left:0,behavior:'auto'});
+    app.classList.remove('view-transitioning');
+    routeFrame=null;
+  });
+}
+function renderApp(){renderView(view,{force:true,preserveScroll:true});}
+function syncRoute(){renderView(normalizeHashRoute(window.location.hash));}
+window.addEventListener('hashchange',syncRoute);
 
 function topBar(title,icon){
   return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
@@ -171,29 +261,20 @@ function renderHome(){
 <div style="padding:20px">
   <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">Herramientas activas</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-    ${[
-      {id:'gestor',icon:'✅',name:'Gestor de tareas',desc:'Organiza, cronometra y reporta actividades WASH.',color:'#10b981',bg:'#ecfdf5',badge:`${tasks.length} tareas${venc>0?' · ⚠'+venc:''}` },
-      {id:'revisor',icon:'🔍',name:'Revisor de documentos',desc:'Detecta errores y contradicciones.',color:'#1A75BB',bg:'#eff6ff',badge:'PDF · DOCX · PPTX'},
-      {id:'mejorador',icon:'✍️',name:'Mejorador de textos',desc:'Mejora estilo y redacción. 5 estilos.',color:'#8b5cf6',bg:'#f5f3ff',badge:'Texto · Word · PPTX'},
-      {id:'traductor',icon:'🌐',name:'Traductor WASH / ONU',desc:'Inglés ↔ Español con glosario técnico.',color:'#f59e0b',bg:'#fffbeb',badge:'50+ términos WASH'},
-      {id:'reuniones',icon:'🎙',name:'Resumen de reuniones',desc:'Transcripciones, actas, notas y audio.',color:'#14b8a6',bg:'#f0fdfa',badge:'Texto · Doc · Audio'},
-      {id:'extractor',icon:'📊',name:'Extractor de indicadores',desc:'Extrae indicadores de cualquier documento.',color:'#0ea5e9',bg:'#f0f9ff',badge:'PDF · DOCX · PPTX · XLSX'},
-      {id:'comparador',action:'comparador',icon:'📈',name:'Comparador de resultados',desc:'Analiza cambios, tendencias y variaciones entre períodos.',color:'#f97316',bg:'#fff7ed',badge:'Resultados · KPIs · Tendencias'},
-      {id:'propuestas',action:'propuestas',icon:'📋',name:'Generador de propuestas',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',color:'#ec4899',bg:'#fdf2f8',badge:'Narrativas · Donantes · UNICEF'},
-    ].map(t=>`<div onclick="${t.action ? `openTool('${t.action}')` : `go('${t.id}')`}" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+    ${DASHBOARD_MODULES.map(t=>`<div data-view="${t.id}" data-action="${t.action||''}" onclick="openDashboardCard(this)" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${t.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
       <div style="width:38px;height:38px;border-radius:10px;background:${t.bg};display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">${t.icon}</div>
       <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">${t.name}</div>
       <div style="font-size:11px;color:#64748b;line-height:1.5;margin-bottom:8px">${t.desc}</div>
-      <span style="font-size:10px;background:${t.bg};color:${t.color};border-radius:99px;padding:2px 8px;border:1px solid ${t.color}33">${t.badge}</span>
+      <span style="font-size:10px;background:${t.bg};color:${t.color};border-radius:99px;padding:2px 8px;border:1px solid ${t.color}33">${moduleBadge(t)}</span>
     </div>`).join('')}
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-    <div onclick="go('historial')" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid #6366f1" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-      <div style="width:38px;height:38px;border-radius:10px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">📚</div>
-      <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">Historial</div>
-      <div style="font-size:11px;color:#64748b;line-height:1.5;margin-bottom:8px">Resúmenes, traducciones, reportes, mejoras e indicadores guardados.</div>
-      <span style="font-size:10px;background:#eef2ff;color:#6366f1;border-radius:99px;padding:2px 8px;border:1px solid #c7d2fe">${totalHist} registros · Sincronizado</span>
+    <div onclick="go('historial')" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${MODULE_BY_ID.historial.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="width:38px;height:38px;border-radius:10px;background:${MODULE_BY_ID.historial.bg};display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">${MODULE_BY_ID.historial.icon}</div>
+      <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">${MODULE_BY_ID.historial.name}</div>
+      <div style="font-size:11px;color:#64748b;line-height:1.5;margin-bottom:8px">${MODULE_BY_ID.historial.desc}</div>
+      <span style="font-size:10px;background:${MODULE_BY_ID.historial.bg};color:${MODULE_BY_ID.historial.color};border-radius:99px;padding:2px 8px;border:1px solid #c7d2fe">${moduleBadge(MODULE_BY_ID.historial)}</span>
     </div>
     <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;border-top:4px solid #64748b">
       <div style="width:38px;height:38px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">💾</div>
@@ -211,8 +292,19 @@ function renderHome(){
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
     ${[{i:'👶',n:'PAO Tumbes',d:'Flujos migratorios y niñez'},{i:'📊',n:'Dashboard WASH',d:'Indicadores en tiempo real'},{i:'📑',n:'Rendición de cuentas',d:'Reportes estándar UNICEF'},{i:'🗺️',n:'Mapeo de socios',d:'Red de implementadores Tumbes'}].map(t=>`<div style="background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:12px;opacity:.7"><div style="font-size:14px;margin-bottom:5px">${t.i}</div><div style="font-size:11px;font-weight:600;color:#475569;margin-bottom:2px">${t.n}</div><div style="font-size:10px;color:#94a3b8">${t.d}</div><div style="margin-top:6px;font-size:10px;background:#f1f5f9;color:#64748b;border-radius:99px;padding:2px 8px;display:inline-block">Próximamente</div></div>`).join('')}
   </div>
-  <div style="text-align:center;font-size:11px;color:#94a3b8">Caja de Herramientas Frank · UNICEF Tumbes · v7.0 · 6 herramientas activas</div>
+  <div style="text-align:center;font-size:11px;color:#94a3b8">Caja de Herramientas Frank · UNICEF Tumbes · v7.0 · ${DASHBOARD_MODULES.length} herramientas activas</div>
 </div>`;
+}
+
+
+function renderToolFrame(module){
+  const url=new URL(resolveAppPath(module.path));
+  url.searchParams.set('embedded','1');
+  return`<div style="padding:16px">${topBar(module.name,module.icon)}
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;min-height:calc(100vh - 130px);box-shadow:0 10px 30px rgba(15,23,42,.06)">
+      <iframe src="${url.href}" title="${module.name}" style="width:100%;height:calc(100vh - 132px);min-height:720px;border:0;background:#f8fafc;display:block"></iframe>
+    </div>
+  </div>`;
 }
 
 // ── EXTRACTOR ──────────────────────────────────────────────
@@ -721,32 +813,36 @@ top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(15,23,42,.7);
+background:rgba(15,23,42,.66);
+backdrop-filter:blur(6px);
 z-index:99999;
 align-items:center;
 justify-content:center;
 ">
 
   <div id="modalContent" style="
-  width:90%;
-  max-width:1000px;
-  background:white;
-  border-radius:18px;
-  padding:24px;
-  max-height:90vh;
-  overflow:auto;
+  width:min(96vw,1280px);
+  height:min(92vh,920px);
+  background:#f8fafc;
+  border:1px solid rgba(226,232,240,.9);
+  border-radius:22px;
+  padding:10px;
+  overflow:hidden;
   position:relative;
+  box-shadow:0 28px 90px rgba(15,23,42,.38);
   ">
 
     <button onclick="closeModal()" style="
     position:absolute;
-    top:14px;
-    right:14px;
+    top:18px;
+    right:18px;
+    z-index:2;
     border:none;
-    background:#ef4444;
+    background:rgba(239,68,68,.94);
     color:white;
-    padding:8px 12px;
-    border-radius:8px;
+    padding:7px 12px;
+    border-radius:999px;
+    box-shadow:0 10px 28px rgba(15,23,42,.22);
     cursor:pointer;
     ">
       Cerrar
@@ -759,38 +855,41 @@ justify-content:center;
 </div>
 
 <script>
-
+let modalCloseTimer=null;
 function openTool(tool){
 
   const modal=document.getElementById('modal');
   const body=document.getElementById('modalBody');
+  if(modalCloseTimer){clearTimeout(modalCloseTimer);modalCloseTimer=null;}
+  const selected=MODULE_BY_ID[tool];
 
+  if(!selected)return;
+
+  if(!selected.path)return;
+
+  const url=new URL(resolveAppPath(selected.path));
+  url.searchParams.set('embedded','1');
+
+  body.innerHTML=`
+    <iframe
+      src="${url.href}"
+      title="${selected.name}"
+      class="tool-frame"
+    ></iframe>
+  `;
   modal.style.display='flex';
-
-  if(tool==='comparador'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📈 Comparador de resultados</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#f8fafc;border-radius:12px;">
-        Próximamente integraremos aquí el comparador completo.
-      </div>
-    `;
-  }
-
-  if(tool==='propuestas'){
-    body.innerHTML=`
-      <h1 style="margin-bottom:10px;">📋 Generador de propuestas</h1>
-      <p>Herramienta integrada en WASH-OS.</p>
-      <div style="margin-top:20px;padding:20px;background:#fdf2f8;border-radius:12px;">
-        Próximamente integraremos aquí el generador completo.
-      </div>
-    `;
-  }
+  requestAnimationFrame(()=>modal.classList.add('is-open'));
 
 }
 
 function closeModal(){
-  document.getElementById('modal').style.display='none';
+  const modal=document.getElementById('modal');
+  modal.classList.remove('is-open');
+  modalCloseTimer=setTimeout(()=>{
+    modal.style.display='none';
+    document.getElementById('modalBody').innerHTML='';
+    modalCloseTimer=null;
+  },180);
 }
 
 </script>
