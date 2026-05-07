@@ -166,6 +166,7 @@ function buildModuleRegistry(config){
   MODULE_BY_ID=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.id,m]));
   MODULE_BY_ROUTE=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.route,m]));
 }
+
 function appBasePath(){const marker='/modules/';const idx=window.location.pathname.indexOf(marker);return idx>=0?window.location.pathname.slice(0,idx):'';}
 function resolveAppPath(path){if(!path)return path;if(/^https?:|^data:|^blob:/.test(path))return path;const clean=path.replace(/^\.\//,'').replace(/^\//,'');return window.location.origin+appBasePath()+'/'+clean;}
 async function loadModuleConfig(){
@@ -173,10 +174,12 @@ async function loadModuleConfig(){
     try{
       const res=await fetch(url,{cache:'no-cache'});
       if(!res.ok)throw new Error('modules.json '+res.status);
+
       buildModuleRegistry(await res.json());
       return;
     }catch(e){}
   }
+
   buildModuleRegistry(DEFAULT_MODULES_CONFIG);
 }
 function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
