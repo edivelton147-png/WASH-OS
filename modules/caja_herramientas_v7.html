@@ -53,7 +53,7 @@ justify-content:space-between;
       Inicio
     </a>
 
-    <button style="
+    <button onclick="go('home')" style="
     background:#0ea5e9;
     color:white;
     border:none;
@@ -151,12 +151,30 @@ function openDashboardCard(el){
 }
 async function init(){await loadAll();renderApp();}
 
-function renderApp(){
+const ROUTES={dashboard:'home',home:'home',gestor:'gestor',revisor:'revisor',traductor:'traductor',reuniones:'reuniones',mejorador:'mejorador',extractor:'extractor',comparador:'comparador',propuestas:'propuestas',historial:'historial'};
+const VIEW_ROUTES={home:'dashboard',gestor:'gestor',revisor:'revisor',traductor:'traductor',reuniones:'reuniones',mejorador:'mejorador',extractor:'extractor',comparador:'comparador',propuestas:'propuestas',historial:'historial'};
+function getViewRenderers(){return{home:renderHome,gestor:renderGestor,revisor:renderRevisor,traductor:renderTraductor,reuniones:renderReuniones,mejorador:renderMejorador,extractor:renderExtractor,comparador:renderComparador,propuestas:renderPropuestas,historial:renderHistorial};}
+function normalizeHashRoute(hash){const raw=(hash||'').replace(/^#\/?/,'').split(/[?#]/)[0].replace(/^\/+|\/+$/g,'')||'dashboard';return ROUTES[raw]||'home';}
+function routeForView(v){return VIEW_ROUTES[v]||'dashboard';}
+function go(v){const nextHash='#/'+routeForView(v);if(window.location.hash!==nextHash){window.location.hash=nextHash;return;}renderView(v);}
+function openDashboardCard(el){
+  const action=el&&el.dataset?el.dataset.action:'';
+  const target=el&&el.dataset?el.dataset.view:'';
+  if(action){openTool(action);return;}
+  if(target)go(target);
+}
+async function init(){await loadAll();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
+
+function renderView(v){
+  view=ROUTES[v]||v||'home';
   const app=document.getElementById('app');
   const map={home:renderHome,gestor:renderGestor,revisor:renderRevisor,traductor:renderTraductor,reuniones:renderReuniones,mejorador:renderMejorador,extractor:renderExtractor,comparador:renderComparador,propuestas:renderPropuestas,historial:renderHistorial};
   app.innerHTML=(map[view]||renderHome)();
   postRender();
 }
+function renderApp(){renderView(view);}
+function syncRoute(){renderView(normalizeHashRoute(window.location.hash));}
+window.addEventListener('hashchange',syncRoute);
 
 function topBar(title,icon){
   return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #e2e8f0">
