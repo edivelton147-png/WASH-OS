@@ -132,23 +132,29 @@ const ESTILOS={
 
 const SECTOR_COLORS={wash:'background:#E6F1FB;color:#0C447C',salud:'background:#E1F5EE;color:#085041',educacion:'background:#FAEEDA;color:#633806',proteccion:'background:#FBEAF0;color:#72243E',grd:'background:#FCEBEB;color:#A32D2D',otros:'background:#f1f5f9;color:#475569',general:'background:#f1f5f9;color:#475569'};
 
-const MODULE_REGISTRY=[
-  {id:'home',route:'dashboard',name:'Dashboard',icon:'🏠',render:()=>renderHome()},
-  {id:'gestor',route:'gestor',name:'Gestor de tareas',icon:'✅',desc:'Organiza, cronometra y reporta actividades WASH.',color:'#10b981',bg:'#ecfdf5',badge:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,render:()=>renderGestor()},
-  {id:'revisor',route:'revisor',name:'Revisor de documentos',icon:'🔍',desc:'Detecta errores y contradicciones.',color:'#1A75BB',bg:'#eff6ff',badge:'PDF · DOCX · PPTX',render:()=>renderRevisor()},
-  {id:'mejorador',route:'mejorador',name:'Mejorador de textos',icon:'✍️',desc:'Mejora estilo y redacción. 5 estilos.',color:'#8b5cf6',bg:'#f5f3ff',badge:'Texto · Word · PPTX',render:()=>renderMejorador()},
-  {id:'traductor',route:'traductor',name:'Traductor WASH / ONU',icon:'🌐',desc:'Inglés ↔ Español con glosario técnico.',color:'#f59e0b',bg:'#fffbeb',badge:'50+ términos WASH',render:()=>renderTraductor()},
-  {id:'reuniones',route:'reuniones',name:'Resumen de reuniones',icon:'🎙',desc:'Transcripciones, actas, notas y audio.',color:'#14b8a6',bg:'#f0fdfa',badge:'Texto · Doc · Audio',render:()=>renderReuniones()},
-  {id:'extractor',route:'extractor',name:'Extractor de indicadores',icon:'📊',desc:'Extrae indicadores de cualquier documento.',color:'#0ea5e9',bg:'#f0f9ff',badge:'PDF · DOCX · PPTX · XLSX',render:()=>renderExtractor()},
-  {id:'comparador',route:'comparador',name:'Comparador de resultados',icon:'📈',desc:'Analiza cambios, tendencias y variaciones entre períodos.',color:'#f97316',bg:'#fff7ed',badge:'Resultados · KPIs · Tendencias',path:'./comparador_resultados.html',render:m=>renderToolFrame(m)},
-  {id:'propuestas',route:'propuestas',name:'Generador de propuestas',icon:'📋',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',color:'#ec4899',bg:'#fdf2f8',badge:'Narrativas · Donantes · UNICEF',path:'./generador_propuestas.html',render:m=>renderToolFrame(m)},
-  {id:'historial',route:'historial',name:'Historial',icon:'📚',desc:'Resúmenes, traducciones, reportes, mejoras e indicadores guardados.',color:'#6366f1',bg:'#eef2ff',badge:()=>`${historialReuniones.length+historialTraducciones.length+historialReportes.length+historialMejoras.length+historialIndicadores.length} registros · Sincronizado`,render:()=>renderHistorial()}
-];
-const DASHBOARD_MODULES=MODULE_REGISTRY.filter(m=>!['home','historial'].includes(m.id));
-const MODULE_BY_ID=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.id,m]));
-const MODULE_BY_ROUTE=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.route,m]));
-function moduleBadge(m){return typeof m.badge==='function'?m.badge():m.badge;}
-
+const DEFAULT_MODULES_CONFIG=[];
+const MODULE_RENDERERS={home:()=>renderHome(),gestor:()=>renderGestor(),revisor:()=>renderRevisor(),mejorador:()=>renderMejorador(),traductor:()=>renderTraductor(),reuniones:()=>renderReuniones(),extractor:()=>renderExtractor(),comparador:m=>renderToolFrame(m),propuestas:m=>renderToolFrame(m),historial:()=>renderHistorial()};
+const DYNAMIC_BADGES={gestor:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,historial:()=>`${historialReuniones.length+historialTraducciones.length+historialReportes.length+historialMejoras.length+historialIndicadores.length} registros · Sincronizado`};
+let MODULE_REGISTRY=[],DASHBOARD_MODULES=[],MODULE_BY_ID={},MODULE_BY_ROUTE={};
+function normalizeModule(m){return{id:m.id,name:m.name,icon:m.icon,route:m.route||m.id,path:m.path||null,badge:m.badge||'',color:m.color||'#64748b',bg:m.bg||'#f1f5f9',desc:m.desc||'',actions:m.actions||[],action:m.action||'',render:MODULE_RENDERERS[m.id]};}
+function buildModuleRegistry(config=DEFAULT_MODULES_CONFIG){
+  const toolModules=(Array.isArray(config)?config:DEFAULT_MODULES_CONFIG).map(normalizeModule).filter(m=>m.id&&m.render);
+  const coreModules=[{id:'home',route:'dashboard',name:'Dashboard',icon:'🏠',path:null,badge:'',color:'#1A75BB',bg:'#eff6ff',desc:'Panel principal',render:MODULE_RENDERERS.home},{id:'historial',route:'historial',name:'Historial',icon:'📚',path:null,badge:'Historial',color:'#6366f1',bg:'#eef2ff',desc:'Resúmenes, traducciones, reportes, mejoras e indicadores guardados.',render:MODULE_RENDERERS.historial}];
+  MODULE_REGISTRY=[coreModules[0],...toolModules,coreModules[1]];
+  DASHBOARD_MODULES=toolModules;
+  MODULE_BY_ID=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.id,m]));
+  MODULE_BY_ROUTE=Object.fromEntries(MODULE_REGISTRY.map(m=>[m.route,m]));
+}
+async function loadModuleConfig(){
+  try{
+    const url=new URL('../config/modules.json',window.location.href);
+    const res=await fetch(url.href,{cache:'no-cache'});
+    if(!res.ok)throw new Error('modules.json '+res.status);
+    buildModuleRegistry(await res.json());
+  }catch(e){buildModuleRegistry(DEFAULT_MODULES_CONFIG);}
+}
+function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
+buildModuleRegistry(DEFAULT_MODULES_CONFIG);
 
 async function loadAll(){
   try{const r=await window.storage.get('unicef-v6');if(r)tasks=JSON.parse(r.value);}catch(e){tasks=[];}
@@ -177,7 +183,7 @@ function openDashboardCard(el){
   if(action){openTool(action);return;}
   if(target&&target!==view)go(target);
 }
-async function init(){await loadAll();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
+async function init(){await loadAll();await loadModuleConfig();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
 
 function renderView(v,opts={}){
   const module=MODULE_BY_ID[v]||MODULE_BY_ROUTE[v]||MODULE_BY_ID.home;
@@ -261,7 +267,7 @@ function renderHome(){
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
     ${[{i:'👶',n:'PAO Tumbes',d:'Flujos migratorios y niñez'},{i:'📊',n:'Dashboard WASH',d:'Indicadores en tiempo real'},{i:'📑',n:'Rendición de cuentas',d:'Reportes estándar UNICEF'},{i:'🗺️',n:'Mapeo de socios',d:'Red de implementadores Tumbes'}].map(t=>`<div style="background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:12px;opacity:.7"><div style="font-size:14px;margin-bottom:5px">${t.i}</div><div style="font-size:11px;font-weight:600;color:#475569;margin-bottom:2px">${t.n}</div><div style="font-size:10px;color:#94a3b8">${t.d}</div><div style="margin-top:6px;font-size:10px;background:#f1f5f9;color:#64748b;border-radius:99px;padding:2px 8px;display:inline-block">Próximamente</div></div>`).join('')}
   </div>
-  <div style="text-align:center;font-size:11px;color:#94a3b8">Caja de Herramientas Frank · UNICEF Tumbes · v7.0 · 6 herramientas activas</div>
+  <div style="text-align:center;font-size:11px;color:#94a3b8">Caja de Herramientas Frank · UNICEF Tumbes · v7.0 · ${DASHBOARD_MODULES.length} herramientas activas</div>
 </div>`;
 }
 
