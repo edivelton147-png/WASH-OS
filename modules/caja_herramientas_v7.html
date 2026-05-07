@@ -179,6 +179,23 @@ async function loadModuleConfig(){
       return;
     }catch(e){}
   }
+  buildModuleRegistry(DEFAULT_MODULES_CONFIG);
+}
+function moduleBadge(m){return DYNAMIC_BADGES[m.id]?DYNAMIC_BADGES[m.id]():m.badge;}
+async function loadAIRouter(){
+  if(window.WashAI&&typeof window.WashAI.routeAI==='function'){console.log('WASH AI Router loaded');return;}
+  await new Promise(resolve=>{
+    const script=document.createElement('script');
+    script.src=resolveAppPath('/core/ai/router.js');
+    script.onload=()=>{
+      if(window.WashAI&&typeof window.WashAI.routeAI==='function')console.log('WASH AI Router loaded');
+      else console.warn('WASH AI Router loaded without routeAI');
+      resolve();
+    };
+    script.onerror=()=>{console.warn('WASH AI Router could not be loaded');resolve();};
+    document.head.appendChild(script);
+  });
+}
 
   buildModuleRegistry(DEFAULT_MODULES_CONFIG);
 }
@@ -212,6 +229,7 @@ function openDashboardCard(el){
   if(action){openTool(action);return;}
   if(target&&target!==view)go(target);
 }
+async function init(){await loadAIRouter();await loadAll();await loadModuleConfig();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
 async function init(){await loadAll();await loadModuleConfig();if(!window.location.hash)window.history.replaceState(null,'','#/dashboard');syncRoute();}
 
 function renderView(v,opts={}){
