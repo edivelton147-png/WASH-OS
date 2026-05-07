@@ -186,7 +186,7 @@ async function loadAIRouter(){
   if(window.WashAI&&typeof window.WashAI.routeAI==='function'){console.log('WASH AI Router loaded');return;}
   await new Promise(resolve=>{
     const script=document.createElement('script');
-    script.src=resolveAppPath('/core/ai/router.js');
+    script.src='/core/ai/router.js';
     script.onload=()=>{
       if(window.WashAI&&typeof window.WashAI.routeAI==='function')console.log('WASH AI Router loaded');
       else console.warn('WASH AI Router loaded without routeAI');
