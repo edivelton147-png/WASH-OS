@@ -80,7 +80,6 @@ async function transcribeAudio(audio, apiKey) {
   return data.text || '';
 }
 
-
 function extractGeminiText(data) {
   return (data.candidates || [])
     .flatMap(candidate => candidate.content && candidate.content.parts ? candidate.content.parts : [])

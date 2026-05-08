@@ -3,23 +3,31 @@ window.WashModules.reuniones = window.WashModules.reuniones || {};
 
 (function(){
   const state = { ctx:null, lastResult:null, file:null, recorder:null, stream:null, chunks:[] };
-  const RESULT_SCHEMA = {
-    summary:'',
-    pending_tasks:[],
-    completed_or_coordinated:[],
-    risks:[],
-    notes:[],
-    source_reference:''
-  };
-  const PROMPT_FALLBACK = {
-    system:'Eres WASH-OS, asistente institucional UNICEF/WASH para reuniones técnicas y seguimiento operativo. Devuelve solo JSON válido del resumen operacional.',
-    summary:'Genera un resumen operacional corto, homogéneo y útil. Máximo 2 a 5 párrafos breves. Resume avances, coordinaciones, decisiones, bloqueos y situación general. No transcribas la reunión.',
-    tasks:'Detecta solo tareas pendientes accionables con título, descripción, prioridad alta/media/baja, fecha si existe, responsable si existe y status pending. No conviertas comentarios generales en tareas.',
-    completed_or_coordinated:'Identifica coordinaciones realizadas, actividades ejecutadas, validaciones, decisiones aplicadas y acciones cerradas. Redacta una lista limpia y operacional.',
-    risks:'Detecta riesgos, retrasos, problemas, interferencias, bloqueos y limitaciones. Si no existen, usa un arreglo vacío.',
-    notes:'Agrega notas operacionales cortas solo si aportan contexto de seguimiento.',
-    source_reference:'Incluye el nombre del archivo, link OneDrive o referencia documental disponible. Si no hay fuente, deja string vacío.'
-  };
+  
+const RESULT_SCHEMA = {
+  summary:'',
+  pending_tasks:[],
+  completed_or_coordinated:[],
+  risks:[],
+  notes:[],
+  source_reference:''
+};
+
+const PROMPT_FALLBACK = {
+  system:'Eres WASH-OS, asistente institucional UNICEF/WASH para reuniones técnicas y seguimiento operacional.',
+
+  summary:'Genera un resumen operacional corto, homogéneo y útil. Máximo 2 a 5 párrafos breves. Resume avances, decisiones, coordinaciones y bloqueos.',
+
+  tasks:'Detecta solo tareas pendientes accionables con título, descripción, prioridad alta/media/baja, responsable y fecha si existe.',
+
+  completed_or_coordinated:'Identifica coordinaciones realizadas, actividades ejecutadas, validaciones y acciones completadas.',
+
+  risks:'Detecta riesgos, retrasos, problemas, interferencias, bloqueos y limitaciones. Si no existen, devolver vacío.',
+
+  notes:'Agrega notas operacionales cortas si aportan contexto útil de seguimiento.',
+
+  source_reference:'Incluye el nombre del archivo, link OneDrive o referencia documental disponible si existe.'
+};
 
   function esc(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function get(id){return document.getElementById(id);}
