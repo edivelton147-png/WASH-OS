@@ -2,8 +2,8 @@ const DEFAULT_AI_ROUTE = 'quickTask';
 
 const AI_ROUTES = {
   meeting: {
-    provider: 'openai',
-    model: 'gpt-4o-transcribe',
+    provider: 'gemini',
+    model: 'gemini-2.5-flash',
   },
   proposal: {
     provider: 'claude',

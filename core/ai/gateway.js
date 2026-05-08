@@ -28,7 +28,7 @@ window.WashAI = window.WashAI || {};
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         provider:route.provider,
-        model:taskType==='meeting'?'gpt-4o-mini':route.model,
+        model:route.model,
         prompt:[systemPrompt,prompt].filter(Boolean).join('\n\n'),
         input:payloadInput,
         type:taskType,

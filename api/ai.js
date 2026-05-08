@@ -1,5 +1,6 @@
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const OPENAI_TRANSCRIPTIONS_URL = 'https://api.openai.com/v1/audio/transcriptions';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 const meetingSchema = {
   type: 'object',
@@ -79,6 +80,43 @@ async function transcribeAudio(audio, apiKey) {
   return data.text || '';
 }
 
+function extractGeminiText(data) {
+  return (data.candidates || [])
+    .flatMap(candidate => candidate.content && candidate.content.parts ? candidate.content.parts : [])
+    .map(part => part.text || '')
+    .join('\n')
+    .trim();
+}
+
+async function runGemini({ model, prompt, input }, apiKey) {
+  const parts = [{ text: [
+    'Responde únicamente JSON válido compatible con este esquema:',
+    '{"summary":"","agreements":[],"tasks":[],"risks":[],"next_steps":[]}',
+    prompt || '',
+    input && input.text ? `\nINPUT:\n${input.text}` : '',
+  ].filter(Boolean).join('\n') }];
+
+  if (input && input.audio && input.audio.data) {
+    parts.push({ inline_data: { mime_type: input.audio.mime || 'audio/webm', data: input.audio.data } });
+  }
+
+  const response = await fetch(`${GEMINI_BASE_URL}/${model || 'gemini-2.5-flash'}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts }],
+      generationConfig: { responseMimeType: 'application/json' },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Gemini API error ${response.status}: ${await response.text()}`);
+  const data = await response.json();
+  const text = extractGeminiText(data);
+  JSON.parse(text);
+  return text;
+}
+
+
 async function runOpenAI({ model, prompt, input, type }, apiKey) {
   const transcript = input && input.audio ? await transcribeAudio(input.audio, apiKey) : '';
   const finalPrompt = [
@@ -120,12 +158,18 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'Method not allowed' });
 
   try {
-    const { provider = 'openai', model = 'gpt-4o-mini', prompt = '', input = {}, type = 'meeting' } = await readBody(req);
-    if (!process.env.OPENAI_API_KEY) return send(res, 500, { ok: false, error: 'OPENAI_API_KEY no configurada' });
-    if (provider !== 'openai') return send(res, 501, { ok: false, error: `Provider no implementado todavía: ${provider}` });
-
-    const text = await runOpenAI({ model, prompt, input, type }, process.env.OPENAI_API_KEY);
-    return send(res, 200, { ok: true, text, provider, model });
+    const { provider = 'openai', model, prompt = '', input = {}, type = 'meeting' } = await readBody(req);
+    let text;
+    if (provider === 'openai') {
+      if (!process.env.OPENAI_API_KEY) return send(res, 500, { ok: false, error: 'OPENAI_API_KEY no configurada' });
+      text = await runOpenAI({ model: model || 'gpt-4o-mini', prompt, input, type }, process.env.OPENAI_API_KEY);
+    } else if (provider === 'gemini') {
+      if (!process.env.GEMINI_API_KEY) return send(res, 500, { ok: false, error: 'GEMINI_API_KEY no configurada' });
+      text = await runGemini({ model: model || 'gemini-2.5-flash', prompt, input, type }, process.env.GEMINI_API_KEY);
+    } else {
+      return send(res, 501, { ok: false, error: `Provider no implementado todavía: ${provider}` });
+    }
+    return send(res, 200, { ok: true, text, provider, model: model || (provider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini') });
   } catch (error) {
     return send(res, 500, { ok: false, error: error.message || 'AI gateway error' });
   }
