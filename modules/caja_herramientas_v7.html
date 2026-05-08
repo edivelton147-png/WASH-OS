@@ -177,6 +177,7 @@ async function loadModuleConfig(){
     try{
       const res=await fetch(url,{cache:'no-cache'});
       if(!res.ok)throw new Error('modules.json '+res.status);
+
       buildModuleRegistry(await res.json());
       return;
     }catch(e){}
