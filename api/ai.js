@@ -80,7 +80,6 @@ async function transcribeAudio(audio, apiKey) {
   return data.text || '';
 }
 
-
 function extractGeminiText(data) {
   return (data.candidates || [])
     .flatMap(candidate => candidate.content && candidate.content.parts ? candidate.content.parts : [])
@@ -116,6 +115,7 @@ async function runGemini({ model, prompt, input }, apiKey) {
   JSON.parse(text);
   return text;
 }
+
 
 async function runOpenAI({ model, prompt, input, type }, apiKey) {
   const transcript = input && input.audio ? await transcribeAudio(input.audio, apiKey) : '';
