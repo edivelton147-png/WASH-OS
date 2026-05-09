@@ -8,13 +8,34 @@
   function get(id){return document.getElementById(id);}
   function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
   function asArray(value){return Array.isArray(value)?value:(value?[value]:[]);}
-
   function readLocalHistory(){try{return JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||'[]');}catch(error){console.warn('No se pudo leer historial local.',error);return [];} }
   function writeLocalHistory(records){try{localStorage.setItem(LOCAL_HISTORY_KEY,JSON.stringify(records));return true;}catch(error){console.warn('No se pudo escribir historial local.',error);return false;} }
   function deleteLocalHistory(id){const records=readLocalHistory();const next=records.filter(record=>String(record.id)!==String(id));if(next.length===records.length)return false;return writeLocalHistory(next);}
-
   function raw(record){return record.raw_result && typeof record.raw_result==='object' ? record.raw_result : {};}
   function firstArray(...values){for(const value of values){if(Array.isArray(value)&&value.length)return value;}return [];}
+  function isMissingTitle(title){const text=String(title||'').trim().toLowerCase();return !text||text==='reunión sin título'||text==='reunion sin titulo'||text==='sin título'||text==='sin titulo';}
+  function autoTitleFromContext(record,data,classification){
+    const context=[record.summary,data.summary,data.resumen,record.source_reference,record.type,...asArray(record.tags)].join(' ');
+    const text=normalizeText(context);
+    if(text.includes('pma')&&text.includes('pao'))return 'Coordinación PMA PAO';
+    if(text.includes('tienda')&&text.includes('humanitaria'))return 'Seguimiento Tienda Humanitaria';
+    if(text.includes('cartilla')&&text.includes('pao'))return 'Actualización cartilla PAO';
+    if(classification==='Emergencia')return text.includes('wash')?'WASH emergencia operativa':'Emergencia seguimiento operativo';
+    if(classification==='Salud')return 'Seguimiento operativo Salud';
+    if(classification==='Educación')return 'Coordinación operativa Educación';
+    if(classification==='WASH')return 'Seguimiento operativo WASH';
+
+    const stop=new Set('reunion reunión tecnica técnica seguimiento operativo operativa coordinacion coordinación actualizacion actualización de del la el los las y en para con por un una sobre desde hacia se que al'.split(' '));
+    const words=text.match(/[a-z0-9áéíóúñ]+/g)||[];
+    const picked=[];
+    for(const word of words){
+      if(word.length<3||stop.has(word)||picked.includes(word))continue;
+      picked.push(word.toUpperCase()==='pao'||word.toUpperCase()==='pma'?word.toUpperCase():word.charAt(0).toUpperCase()+word.slice(1));
+      if(picked.length>=4)break;
+    }
+    return picked.length?`Seguimiento ${picked.join(' ')}`.split(' ').slice(0,6).join(' '):'Reunión técnica';
+  }
+
   function inferClassification(record){
     const data=raw(record);
     const explicit=data.classification||data.clasificacion||record.classification||record.clasificacion;
@@ -35,8 +56,10 @@
     const risks=firstArray(record.risks,data.risks,data.riesgos);
     const next=firstArray(data.next_steps,data.proximos_pasos,data.nextSteps,record.next_steps,record.notes);
     const notes=firstArray(data.notes,data.notas,record.observations,record.notas);
-    return {...record,title:record.title||data.title||data.titulo||'Reunión técnica',id:String(record.id||record.created_at||Math.random()),month:parts.month,year:parts.year,classification:inferClassification(record),agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags)};
-    return {...record,id:String(record.id||record.created_at||Math.random()),month:parts.month,year:parts.year,classification:inferClassification(record),agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags)};
+    const classification=inferClassification(record);
+    const sourceTitle=record.title||data.title||data.titulo;
+    const title=isMissingTitle(sourceTitle)?autoTitleFromContext(record,data,classification):String(sourceTitle).trim().split(/\s+/).slice(0,6).join(' ');
+    return {...record,title,id:String(record.id||record.created_at||Math.random()),month:parts.month,year:parts.year,classification,agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags)};
   }
   function queryParams(){const params=new URLSearchParams();params.set('type','meeting');params.set('limit','150');if(state.filters.month)params.set('month',state.filters.month);if(state.filters.year)params.set('year',state.filters.year);return params.toString();}
   function matchesClientFilters(record){
