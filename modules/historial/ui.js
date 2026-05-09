@@ -1,4 +1,4 @@
-window.WashMeetingHistoryUI = (function(){
+window.WashHistoryUI = (function(){
   const MONTHS = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   function esc(value){return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -15,34 +15,30 @@ window.WashMeetingHistoryUI = (function(){
   function dateLabel(record){const raw=record.date||record.created_at; if(!raw)return 'Sin fecha'; const d=new Date(raw); return Number.isNaN(d.getTime())?'Sin fecha':d.toLocaleDateString('es-PE',{year:'numeric',month:'short',day:'2-digit'});}
   function lineClass(classification){const key=String(classification||'Otros').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); if(key.includes('emergencia'))return 'historial-line-emergencia'; if(key.includes('wash'))return 'historial-line-wash'; if(key.includes('salud'))return 'historial-line-salud'; if(key.includes('educacion'))return 'historial-line-educacion'; return 'historial-line-otros';}
 
-  function renderPanel(ctx, state){
+  function render(ctx, state){
     const years = state.years.length ? state.years : [new Date().getFullYear()];
-    return `<div class="historial-shell">
+    return `<div style="padding:16px">${ctx.topBar('Historial operacional','📚')}
+      <div class="historial-shell">
         <div class="historial-toolbar">
-          <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="summary, title o tags" oninput="WashMeetingHistory.onFilterInput()"></div>
-          <div class="historial-field"><label>Mes</label><select id="hist-month" onchange="WashMeetingHistory.applyFilters()">${options([{value:'',label:'Todos los meses'},...MONTHS.slice(1).map((m,i)=>({value:i+1,label:m}))],state.filters.month)}</select></div>
-          <div class="historial-field"><label>Año</label><select id="hist-year" onchange="WashMeetingHistory.applyFilters()">${options([{value:'',label:'Todos los años'},...years.map(y=>({value:y,label:y}))],state.filters.year)}</select></div>
-          <div class="historial-field"><label>Clasificación</label><select id="hist-classification" onchange="WashMeetingHistory.applyFilters()">${options(['','Emergencia','Salud','WASH','Educación','Otros'].map(v=>({value:v,label:v||'Todas'})),state.filters.classification)}</select></div>
-          <button class="historial-btn" onclick="WashMeetingHistory.reload()">Actualizar</button>
+          <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="summary, title o tags" oninput="WashHistory.onFilterInput()"></div>
+          <div class="historial-field"><label>Mes</label><select id="hist-month" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los meses'},...MONTHS.slice(1).map((m,i)=>({value:i+1,label:m}))],state.filters.month)}</select></div>
+          <div class="historial-field"><label>Año</label><select id="hist-year" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los años'},...years.map(y=>({value:y,label:y}))],state.filters.year)}</select></div>
+          <div class="historial-field"><label>Clasificación</label><select id="hist-classification" onchange="WashHistory.applyFilters()">${options(['','Emergencia','Salud','WASH','Educación','Otros'].map(v=>({value:v,label:v||'Todas'})),state.filters.classification)}</select></div>
+          <button class="historial-btn" onclick="WashHistory.reload()">Actualizar</button>
         </div>
         <div class="historial-status" id="hist-status">${esc(state.status)}</div>
         <div class="historial-layout">
           <div id="hist-list" class="historial-list">${renderList(state.records,state.selectedId)}</div>
           <div id="hist-detail" class="historial-detail">${renderDetail(state.selected)}</div>
         </div>
+      </div>
     </div>`;
   }
 
   function renderList(records, selectedId){
     if(!records.length)return '<div class="historial-empty">Sin reuniones para los filtros seleccionados.<br>Procesa una reunión o ajusta búsqueda, mes, año o clasificación.</div>';
-
-    return records.map(record=>{
-  const selected = record.id === selectedId;
-  const activeStyle = selected ? 'background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.22);border-left:4px solid #0ea5e9;' : '';
-
-  return `<article class="historial-card ${selected ? 'active' : ''}" onclick="window.WashMeetingsHistory.select('${record.id}')" style="${activeStyle}">
-    <div class="historial-class-line ${lineClass(record.classification)}"></div>
-       
+    return records.map(record=>`<article class="historial-card ${record.id===selectedId?'active':''}" onclick="WashHistory.openDetail('${esc(record.id)}')">
+      <div class="historial-class-line ${lineClass(record.classification)}"></div>
       <div class="historial-card-head"><div class="historial-title">${esc(record.title||'Reunión sin título')}</div><div class="historial-date">${esc(dateLabel(record))}</div></div>
       <div class="historial-summary">${esc(short(record.summary||'Sin resumen disponible.'))}</div>
       <div class="historial-meta">
@@ -51,16 +47,12 @@ window.WashMeetingHistoryUI = (function(){
         <span class="historial-pill">⚠ ${record.risk_count||0} riesgos</span>
         <span class="historial-pill model">${esc([record.provider,record.model].filter(Boolean).join(' · ')||'IA no especificada')}</span>
       </div>
-
     </article>`).join('');
-
   }
 
   function renderDetail(record){
     if(!record)return '<div class="historial-detail-empty">Selecciona una reunión para ver el detalle completo.</div>';
-
-    return `<div class="historial-detail-body" style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.22);border-left:4px solid #0ea5e9;border-radius:14px;min-height:100%">
-
+    return `<div class="historial-detail-body">
       <h3>${esc(record.title||'Reunión sin título')}</h3>
       <div class="historial-detail-sub">${esc(dateLabel(record))} · ${esc(record.classification||'Otros')} · ${esc([record.provider,record.model].filter(Boolean).join(' / ')||'modelo IA no especificado')}</div>
       <div class="historial-section"><h4>Resumen</h4><p>${esc(record.summary||'Sin resumen disponible.')}</p></div>
@@ -71,14 +63,12 @@ window.WashMeetingHistoryUI = (function(){
       <div class="historial-section"><h4>Próximos pasos</h4>${list(record.next_steps,'Sin próximos pasos registrados.')}</div>
       <div class="historial-section"><h4>Referencia fuente</h4><p>${esc(record.source_reference||'Sin referencia fuente.')}</p></div>
       <div class="historial-section"><h4>Modelo IA utilizado</h4><p>${esc([record.provider,record.model].filter(Boolean).join(' / ')||'No especificado')}</p></div>
-
-      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashMeetingHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashMeetingHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button><button class="historial-btn secondary" style="color:#b91c1c;border-color:#fecaca;background:#fff" onclick="WashMeetingHistory.deleteRecord('${esc(record.id)}')">Eliminar</button></div>
-
+      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button></div>
     </div>`;
   }
 
   function updateList(records, selectedId){const el=document.getElementById('hist-list');if(el)el.innerHTML=renderList(records,selectedId);}
   function updateDetail(record){const el=document.getElementById('hist-detail');if(el)el.innerHTML=renderDetail(record);}
   function setStatus(text, error){const el=document.getElementById('hist-status');if(el){el.textContent=text||'';el.className=`historial-status${error?' historial-error':''}`;}}
-  return { renderPanel, updateList, updateDetail, setStatus, esc };
+  return { render, updateList, updateDetail, setStatus, esc };
 })();

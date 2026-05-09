@@ -44,13 +44,14 @@ window.WashModules.reuniones = window.WashModules.reuniones || {};
 
   window.WashMeetings = {
     showTab(tab){
-      const panel=get('meet-panel-history');
-      const showHistory=tab==='history';
-      if(panel)panel.style.display=showHistory?'block':'none';
-      if(showHistory&&window.WashMeetingHistory&&typeof window.WashMeetingHistory.init==='function'){
-        window.WashMeetingHistory.init();
-        setTimeout(()=>panel?.scrollIntoView({behavior:'smooth',block:'start'}),0);
-      }
+      const isHistory=tab==='history';
+      ['process','history'].forEach(name=>{
+        const panel=get(`meet-panel-${name}`);
+        const button=get(`meet-tab-${name}`);
+        if(panel)panel.classList.toggle('active',name===tab);
+        if(button)button.classList.toggle('active',name===tab);
+      });
+      if(isHistory&&window.WashMeetingHistory&&typeof window.WashMeetingHistory.init==='function')window.WashMeetingHistory.init();
     },
     async process(){const input=meetingInput();if(!input.content){alert('Agrega notas, transcripción o un archivo multimodal.');return;}const route=getRoute();const prompts=await loadMeetingPrompts();const prompt=buildPrompt(input,prompts,route);setStatus(`AI Router: ${route.provider} · ${route.model}`);const paste=get('meet-ai-paste');try{await ensureAIGateway();setStatus(`Enviando automáticamente a ${route.provider}...`);const audioFile=state.file&&state.file.type==='audio'?state.file.rawFile:null;const ai=await window.WashAI.runAI('meeting',{prompt,systemPrompt:prompts.system,audioFile});const result=parseResult(JSON.stringify(ai.result),input);const aiRoute=ai.route||route;state.lastResult={input,result};renderResults(result);if(paste)paste.style.display='none';setStatus(`Resultado generado automáticamente con ${aiRoute.provider}. Guardando historial...`);saveResultLater(input,result,aiRoute);}catch(e){console.warn('IA automática no disponible; usando fallback manual.',e);if(paste)paste.style.display='block';copyPromptFallback(prompt,route);}},
     async loadResult(){const raw=get('meet-ai-output')?.value.trim();if(!raw){alert('Pega el JSON o resultado primero.');return;}const input=meetingInput();const route=getRoute();const result=parseResult(raw,input);state.lastResult={input,result};renderResults(result);setStatus('Resultado cargado. Guardando historial...');saveResultLater(input,result,route);},
