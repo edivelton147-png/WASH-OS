@@ -40,6 +40,16 @@ window.WashModules.reuniones = window.WashModules.reuniones || {};
   function saveResultLater(input,result,route){setTimeout(()=>saveResult(input,result,route),0);}
 
   window.WashMeetings = {
+    showTab(tab){
+      const isHistory=tab==='history';
+      ['process','history'].forEach(name=>{
+        const panel=get(`meet-panel-${name}`);
+        const button=get(`meet-tab-${name}`);
+        if(panel)panel.classList.toggle('active',name===tab);
+        if(button)button.classList.toggle('active',name===tab);
+      });
+      if(isHistory&&window.WashMeetingHistory&&typeof window.WashMeetingHistory.init==='function')window.WashMeetingHistory.init();
+    },
     async process(){const input=meetingInput();if(!input.content){alert('Agrega notas, transcripción o un archivo multimodal.');return;}const route=getRoute();const prompts=await loadMeetingPrompts();const prompt=buildPrompt(input,prompts,route);setStatus(`AI Router: ${route.provider} · ${route.model}`);const paste=get('meet-ai-paste');try{await ensureAIGateway();setStatus(`Enviando automáticamente a ${route.provider}...`);const audioFile=state.file&&state.file.type==='audio'?state.file.rawFile:null;const ai=await window.WashAI.runAI('meeting',{prompt,systemPrompt:prompts.system,audioFile});const result=parseResult(JSON.stringify(ai.result));const aiRoute=ai.route||route;state.lastResult={input,result};renderResults(result);if(paste)paste.style.display='none';setStatus(`Resultado generado automáticamente con ${aiRoute.provider}. Guardando historial...`);saveResultLater(input,result,aiRoute);}catch(e){console.warn('IA automática no disponible; usando fallback manual.',e);if(paste)paste.style.display='block';copyPromptFallback(prompt,route);}},
     async loadResult(){const raw=get('meet-ai-output')?.value.trim();if(!raw){alert('Pega el JSON o resultado primero.');return;}const input=meetingInput();const route=getRoute();const result=parseResult(raw);state.lastResult={input,result};renderResults(result);setStatus('Resultado cargado. Guardando historial...');saveResultLater(input,result,route);},
     async startRecording(){if(!navigator.mediaDevices||!window.MediaRecorder){alert('MediaRecorder no está disponible en este navegador.');return;}try{state.stream=await navigator.mediaDevices.getUserMedia({audio:true});state.chunks=[];state.recorder=new MediaRecorder(state.stream);state.recorder.ondataavailable=e=>{if(e.data&&e.data.size)state.chunks.push(e.data);};state.recorder.onstop=async()=>{const blob=new Blob(state.chunks,{type:'audio/webm'});const file=new File([blob],recordingName(),{type:'audio/webm'});state.stream?.getTracks().forEach(track=>track.stop());state.stream=null;state.recorder=null;const stop=get('meet-stop-record');if(stop)stop.disabled=true;setStatus('Grabación lista. Procesando audio...');await window.WashMeetings.handleFile(file);};state.recorder.start();const stop=get('meet-stop-record');if(stop)stop.disabled=false;setStatus('Grabando...');window.WashMeetingsUI.setFilePreview({name:'nota de voz en curso',label:'Audio',icon:'🎙️',status:'grabando',note:'Grabando...'});}catch(e){console.warn('No se pudo iniciar la grabación.',e);setStatus('No se pudo acceder al micrófono.');}},
