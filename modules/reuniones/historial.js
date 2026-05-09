@@ -1,11 +1,18 @@
 
 (function(){
   const CLASSIFICATIONS = ['Emergencia','Salud','WASH','Educación','Otros'];
+
+  const LOCAL_HISTORY_KEY = 'wash-operational-history';
   const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',q:''}, years:[], timer:null };
 
   function get(id){return document.getElementById(id);}
   function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
   function asArray(value){return Array.isArray(value)?value:(value?[value]:[]);}
+
+  function readLocalHistory(){try{return JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||'[]');}catch(error){console.warn('No se pudo leer historial local.',error);return [];} }
+  function writeLocalHistory(records){try{localStorage.setItem(LOCAL_HISTORY_KEY,JSON.stringify(records));return true;}catch(error){console.warn('No se pudo escribir historial local.',error);return false;} }
+  function deleteLocalHistory(id){const records=readLocalHistory();const next=records.filter(record=>String(record.id)!==String(id));if(next.length===records.length)return false;return writeLocalHistory(next);}
+
   function raw(record){return record.raw_result && typeof record.raw_result==='object' ? record.raw_result : {};}
   function firstArray(...values){for(const value of values){if(Array.isArray(value)&&value.length)return value;}return [];}
   function inferClassification(record){
@@ -28,6 +35,7 @@
     const risks=firstArray(record.risks,data.risks,data.riesgos);
     const next=firstArray(data.next_steps,data.proximos_pasos,data.nextSteps,record.next_steps,record.notes);
     const notes=firstArray(data.notes,data.notas,record.observations,record.notas);
+    return {...record,title:record.title||data.title||data.titulo||'Reunión técnica',id:String(record.id||record.created_at||Math.random()),month:parts.month,year:parts.year,classification:inferClassification(record),agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags)};
     return {...record,id:String(record.id||record.created_at||Math.random()),month:parts.month,year:parts.year,classification:inferClassification(record),agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags)};
   }
   function queryParams(){const params=new URLSearchParams();params.set('type','meeting');params.set('limit','150');if(state.filters.month)params.set('month',state.filters.month);if(state.filters.year)params.set('year',state.filters.year);return params.toString();}
@@ -46,7 +54,7 @@
       const response=await fetch(`/api/history?${queryParams()}`,{method:'GET'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||`History API ${response.status}`);
-      const normalized=asArray(data.records).map(normalizeRecord);
+      const normalized=asArray(data.records).map(record=>normalizeRecord({...record,storage:'supabase'}));
       refreshYears(normalized);
       state.records=normalized.filter(matchesClientFilters);
       state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
@@ -55,11 +63,26 @@
       renderCurrent();
     }catch(error){
       console.warn('No se pudo cargar historial operacional.',error);
-      state.records=[];state.selected=null;state.selectedId=null;state.status=`No se pudo cargar Supabase: ${error.message}`;renderCurrent();window.WashMeetingHistoryUI.setStatus(state.status,true);
+      const localRecords=readLocalHistory().filter(record=>record.type==='meeting').map(record=>normalizeRecord({...record,storage:'local'})).filter(matchesClientFilters);
+      refreshYears(localRecords);
+      state.records=localRecords;
+      state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
+      state.selectedId=state.selected?state.selected.id:null;
+      state.status=localRecords.length?`${localRecords.length} reuniones cargadas desde respaldo local`:`No se pudo cargar Supabase: ${error.message}`;
+      renderCurrent();
+      window.WashMeetingHistoryUI.setStatus(state.status,!localRecords.length);
     }
   }
   function readFilters(){state.filters={month:get('hist-month')?.value||'',year:get('hist-year')?.value||'',classification:get('hist-classification')?.value||'',q:get('hist-search')?.value.trim()||''};}
   function detailText(record){return [`${record.title||'Reunión sin título'}`,`Fecha: ${record.date||record.created_at||'Sin fecha'}`,`Clasificación: ${record.classification}`,`IA: ${[record.provider,record.model].filter(Boolean).join(' / ')||'No especificado'}`,'',`Resumen:\n${record.summary||''}`,'',`Acuerdos:\n${record.agreements.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Tareas:\n${record.tasks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Riesgos:\n${record.risks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Próximos pasos:\n${record.next_steps.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`].join('\n');}
+
+  async function deleteRemote(id){
+    const response=await fetch(`/api/history?id=${encodeURIComponent(id)}`,{method:'DELETE'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok)throw new Error(data.error||`History API ${response.status}`);
+    return data.deleted||[];
+  }
+  function removeFromState(id){state.records=state.records.filter(record=>record.id!==String(id));state.selected=state.records[0]||null;state.selectedId=state.selected?state.selected.id:null;renderCurrent();}
 
   window.WashMeetingHistory = {
     init(){load();},
@@ -68,6 +91,23 @@
     onFilterInput(){clearTimeout(state.timer);state.timer=setTimeout(()=>{readFilters();load();},300);},
     openDetail(id){state.selectedId=String(id);state.selected=state.records.find(r=>r.id===state.selectedId)||null;renderCurrent();},
     sendTasksToManager(id){const record=state.records.find(r=>r.id===String(id));const tasks=record?record.tasks:[];window.dispatchEvent(new CustomEvent('wash-history-send-tasks',{detail:{source:'historial',record,tasks}}));window.WashMeetingHistoryUI.setStatus(`${tasks.length} tareas preparadas para futura integración con gestor.`);},
+    async deleteRecord(id){
+      const record=state.records.find(r=>r.id===String(id));
+      if(!record)return;
+      if(!confirm('¿Eliminar esta reunión del historial?'))return;
+      window.WashMeetingHistoryUI.setStatus('Eliminando reunión del historial...');
+      try{
+        await deleteRemote(id);
+        deleteLocalHistory(id);
+        removeFromState(id);
+        window.WashMeetingHistoryUI.setStatus('Reunión eliminada del historial.');
+      }catch(error){
+        const removedLocal=deleteLocalHistory(id);
+        if(record.storage==='local'||removedLocal){removeFromState(id);window.WashMeetingHistoryUI.setStatus('Reunión eliminada del respaldo local.');return;}
+        console.warn('No se pudo eliminar reunión.',error);
+        window.WashMeetingHistoryUI.setStatus(`No se pudo eliminar: ${error.message}`,true);
+      }
+    },
     copyDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;const text=detailText(record);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>window.WashMeetingHistoryUI.setStatus('Detalle copiado al portapapeles.')).catch(()=>window.WashMeetingHistoryUI.setStatus('No se pudo copiar automáticamente.'));}else window.WashMeetingHistoryUI.setStatus('Portapapeles no disponible en este navegador.');}
   };
 

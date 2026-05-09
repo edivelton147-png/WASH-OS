@@ -35,8 +35,14 @@ window.WashMeetingHistoryUI = (function(){
 
   function renderList(records, selectedId){
     if(!records.length)return '<div class="historial-empty">Sin reuniones para los filtros seleccionados.<br>Procesa una reunión o ajusta búsqueda, mes, año o clasificación.</div>';
-    return records.map(record=>`<article class="historial-card ${record.id===selectedId?'active':''}" onclick="WashMeetingHistory.openDetail('${esc(record.id)}')">
-      <div class="historial-class-line ${lineClass(record.classification)}"></div>
+
+    return records.map(record=>{
+  const selected = record.id === selectedId;
+  const activeStyle = selected ? 'background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.22);border-left:4px solid #0ea5e9;' : '';
+
+  return `<article class="historial-card ${selected ? 'active' : ''}" onclick="window.WashMeetingsHistory.select('${record.id}')" style="${activeStyle}">
+    <div class="historial-class-line ${lineClass(record.classification)}"></div>
+       
       <div class="historial-card-head"><div class="historial-title">${esc(record.title||'Reunión sin título')}</div><div class="historial-date">${esc(dateLabel(record))}</div></div>
       <div class="historial-summary">${esc(short(record.summary||'Sin resumen disponible.'))}</div>
       <div class="historial-meta">
@@ -45,12 +51,16 @@ window.WashMeetingHistoryUI = (function(){
         <span class="historial-pill">⚠ ${record.risk_count||0} riesgos</span>
         <span class="historial-pill model">${esc([record.provider,record.model].filter(Boolean).join(' · ')||'IA no especificada')}</span>
       </div>
+
     </article>`).join('');
+
   }
 
   function renderDetail(record){
     if(!record)return '<div class="historial-detail-empty">Selecciona una reunión para ver el detalle completo.</div>';
-    return `<div class="historial-detail-body">
+
+    return `<div class="historial-detail-body" style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.22);border-left:4px solid #0ea5e9;border-radius:14px;min-height:100%">
+
       <h3>${esc(record.title||'Reunión sin título')}</h3>
       <div class="historial-detail-sub">${esc(dateLabel(record))} · ${esc(record.classification||'Otros')} · ${esc([record.provider,record.model].filter(Boolean).join(' / ')||'modelo IA no especificado')}</div>
       <div class="historial-section"><h4>Resumen</h4><p>${esc(record.summary||'Sin resumen disponible.')}</p></div>
@@ -61,7 +71,9 @@ window.WashMeetingHistoryUI = (function(){
       <div class="historial-section"><h4>Próximos pasos</h4>${list(record.next_steps,'Sin próximos pasos registrados.')}</div>
       <div class="historial-section"><h4>Referencia fuente</h4><p>${esc(record.source_reference||'Sin referencia fuente.')}</p></div>
       <div class="historial-section"><h4>Modelo IA utilizado</h4><p>${esc([record.provider,record.model].filter(Boolean).join(' / ')||'No especificado')}</p></div>
-      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashMeetingHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashMeetingHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button></div>
+
+      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashMeetingHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashMeetingHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button><button class="historial-btn secondary" style="color:#b91c1c;border-color:#fecaca;background:#fff" onclick="WashMeetingHistory.deleteRecord('${esc(record.id)}')">Eliminar</button></div>
+
     </div>`;
   }
 
