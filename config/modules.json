@@ -94,5 +94,17 @@
     "bg": "#fdf2f8",
     "desc": "Genera propuestas técnicas y narrativas tipo UNICEF.",
     "actions": []
+  },
+  {
+    "id": "historial",
+    "name": "Historial operacional",
+    "icon": "📚",
+    "route": "historial",
+    "path": null,
+    "badge": "Supabase",
+    "color": "#6366f1",
+    "bg": "#eef2ff",
+    "desc": "Consulta reuniones guardadas en meeting_history.",
+    "actions": []
   }
 ]
