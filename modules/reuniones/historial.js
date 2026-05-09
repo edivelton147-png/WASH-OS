@@ -1,6 +1,7 @@
 
 (function(){
   const CLASSIFICATIONS = ['Emergencia','Salud','WASH','Educación','Otros'];
+
   const LOCAL_HISTORY_KEY = 'wash-operational-history';
   const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',q:''}, years:[], timer:null };
 
