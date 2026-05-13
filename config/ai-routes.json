@@ -1,0 +1,22 @@
+{
+  "meeting": {
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "manualOutputs": ["chatgpt", "claude"]
+  },
+  "proposal": {
+    "provider": "manual",
+    "model": null,
+    "manualOutputs": ["chatgpt", "claude"]
+  },
+  "ocr": {
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "manualOutputs": ["chatgpt", "claude"]
+  },
+  "quickTask": {
+    "provider": "manual",
+    "model": null,
+    "manualOutputs": ["chatgpt", "claude"]
+  }
+}
