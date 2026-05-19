@@ -378,6 +378,7 @@ TEXTO DE ENTRADA (puede ser transcripción de audio, notas o texto libre):
 Extrae y estructura la información. Si algo no está claro en el texto, deja el campo con una pregunta orientadora entre corchetes.
 
 Responde ÚNICAMENTE con este JSON:
+
 {
   "titulo_sugerido": "título concreto y descriptivo para el documento",
   "que": "qué problema aborda o qué se propone lograr",
@@ -526,6 +527,8 @@ ESTRUCTURA 5W:
 - CUÁNDO/DÓNDE: ${cuando_donde||'No definido'}
 
 Genera una propuesta profesional completa. Responde ÚNICAMENTE con este JSON:
+${pp.proposal_schema||'{"resumen_ejecutivo":""}'}
+
 {
   "resumen_ejecutivo": "resumen ejecutivo de 4-5 líneas del documento propuesto",
   "objetivo_general": "objetivo general claro y medible",
@@ -723,6 +726,8 @@ DOCUMENTO A VALIDAR:
 ${docTexto.slice(0,70000)}
 
 Analiza la alineación. Responde ÚNICAMENTE con este JSON:
+${pp.validation_schema||'{"alineacion_general":"media"}'}
+
 {
   "puntaje": "porcentaje de alineación estimado (ej: 75%)",
   "va_bien": ["aspecto positivo 1", "aspecto positivo 2", "aspecto positivo 3"],

@@ -361,7 +361,11 @@ async function procesarImport(){
   document.getElementById('import-paste-area').style.display='none';
   document.getElementById('import-prog-bar').style.width='50%';
   document.getElementById('import-prog-label').textContent='Enviando a Claude...';
+<<<<<<< codex/add-independent-history-module-to-wash-os-yojv1u
+  const cp=await window.WashPromptLoader.loadPrompt('/config/prompts/comparador.json');const prompt=`${cp.system}\n${cp.extract_instructions}\nExtrae los indicadores con sus metas y resultados reales de este documento. Responde ÚNICAMENTE con JSON:\n{"indicadores":[{"nombre":"","meta":"","real":"","unidad":"","sector":"wash|salud|educacion|proteccion|grd|otros","descripcion":""}]}\n\nDOCUMENTO:\n${texto}`;
+=======
   const cp=await window.WashPromptLoader.loadPrompt('/config/prompts/comparador.json',{system:'Eres WASH-OS, analista de resultados para UNICEF/WASH.',extract_instructions:'Extrae indicadores con meta y resultado real desde texto o documentos.'});const prompt=`${cp.system}\n${cp.extract_instructions}\nExtrae los indicadores con sus metas y resultados reales de este documento. Responde ÚNICAMENTE con JSON:\n{"indicadores":[{"nombre":"","meta":"","real":"","unidad":"","sector":"wash|salud|educacion|proteccion|grd|otros","descripcion":""}]}\n\nDOCUMENTO:\n${texto}`;
+>>>>>>> main
   try{if(typeof sendPrompt==='function'){sendPrompt(prompt);document.getElementById('import-prog-bar').style.width='80%';document.getElementById('import-prog-label').textContent='Enviado — pega el JSON abajo';}else throw new Error('no');}
   catch(e){navigator.clipboard.writeText(prompt).catch(()=>{});}
   document.getElementById('import-paste-area').style.display='block';
@@ -396,7 +400,12 @@ async function generarComparacion(){
   document.getElementById('comp-prog-bar').style.width='30%';
   document.getElementById('comp-prog-label').textContent='Preparando análisis...';
   compLog('Indicadores: '+inds.length);
+<<<<<<< codex/add-independent-history-module-to-wash-os-yojv1u
+  const cp=await window.WashPromptLoader.loadPrompt('/config/prompts/comparador.json');const prompt=`${cp.system||'Asistente WASH-OS'}\n${cp.analysis_instructions||'Analiza cumplimiento.'}\n\nCRITERIOS DE ESTADO:\n${(cp.analysis_rules||[]).map(r=>'- '+r).join('\n')}\n\nResponde ÚNICAMENTE con este JSON:
+${cp.analysis_schema||'{"analisis":[],"resumen":""}'}\n\nINDICADORES:\n${JSON.stringify(inds,null,2)}`;
+=======
   const cp=await window.WashPromptLoader.loadPrompt('/config/prompts/comparador.json',{system:'Eres WASH-OS, analista de resultados para UNICEF/WASH.',analysis_instructions:'Calcula avance porcentual y clasifica estado de cumplimiento.'});const prompt=`${cp.system}\n${cp.analysis_instructions}\nAnaliza el cumplimiento de metas de estos indicadores. Para cada uno calcula el % de avance y clasifica el estado.\n\nCRITERIOS DE ESTADO:\n- "logrado": avance ≥ 90%\n- "en_progreso": avance entre 60% y 89%\n- "critico": avance < 60%\n- "sin_dato": si falta meta o resultado real\n\nResponde ÚNICAMENTE con este JSON:\n{"analisis":[{"nombre":"","meta":"","real":"","unidad":"","avance_pct":"","estado":"logrado|en_progreso|critico|sin_dato","sector":"","observacion":"observación breve y concreta de máximo 15 palabras"}],"resumen":"resumen ejecutivo de 3-4 líneas del desempeño general"}\n\nINDICADORES:\n${JSON.stringify(inds,null,2)}`;
+>>>>>>> main
   document.getElementById('comp-prog-bar').style.width='60%';
   document.getElementById('comp-prog-label').textContent='Enviando a Claude...';
   compLog('Enviando análisis...');
@@ -647,7 +656,12 @@ async function compararDocs(){
   document.getElementById('docs-prog-bar').style.width='30%';
   document.getElementById('docs-prog-label').textContent='Preparando comparación...';
   docsLog('Sectores: '+sectores.join(', '));
+<<<<<<< codex/add-independent-history-module-to-wash-os-yojv1u
+  const cp=await window.WashPromptLoader.loadPrompt('/config/prompts/comparador.json');const prompt=`${cp.system||'Asistente WASH-OS'}\n${cp.docs_compare_instructions||'Compara ambos documentos.'}\n\nSECTORES A ANALIZAR: ${sectores.join(', ')}\n\nPARA CADA INDICADOR IDENTIFICA:\n- Si está solo en el documento base (eliminado)\n- Si está solo en el documento actual (nuevo)\n- Si está en ambos y cambió (mejoró, empeoró o se mantuvo)\n\nResponde ÚNICAMENTE con este JSON:
+${cp.docs_compare_schema||'{"comparacion":[],"resumen":""}'}\n\nDOCUMENTO BASE:\n${t1.slice(0,60000)}\n\n---\n\nDOCUMENTO ACTUAL:\n${t2.slice(0,60000)}`;
+=======
   const cp=await window.WashPromptLoader.loadPrompt('/config/prompts/comparador.json',{system:'Eres WASH-OS, analista de resultados para UNICEF/WASH.',docs_compare_instructions:'Compara documento base y actual, detectando nuevos, eliminados y cambios.'});const prompt=`${cp.system}\n${cp.docs_compare_instructions}\nCompara estos dos documentos e identifica todos los indicadores y cómo cambiaron entre el documento base y el actual.\n\nSECTORES A ANALIZAR: ${sectores.join(', ')}\n\nPARA CADA INDICADOR IDENTIFICA:\n- Si está solo en el documento base (eliminado)\n- Si está solo en el documento actual (nuevo)\n- Si está en ambos y cambió (mejoró, empeoró o se mantuvo)\n\nResponde ÚNICAMENTE con este JSON:\n{"comparacion":[{"nombre":"","valor_base":"","valor_actual":"","cambio":"","tendencia":"mejora|deterioro|sin_cambio|nuevo|eliminado","sector":"wash|salud|educacion|proteccion|grd|otros","observacion":"observación breve de máximo 15 palabras"}],"resumen":"resumen ejecutivo de 3-4 líneas de los cambios más relevantes"}\n\nDOCUMENTO BASE:\n${t1.slice(0,60000)}\n\n---\n\nDOCUMENTO ACTUAL:\n${t2.slice(0,60000)}`;
+>>>>>>> main
   document.getElementById('docs-prog-bar').style.width='60%';
   document.getElementById('docs-prog-label').textContent='Enviando a Claude...';
   docsLog('Enviando comparación...');

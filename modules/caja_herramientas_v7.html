@@ -76,6 +76,10 @@ justify-content:space-between;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="../core/storage/storage.js"></script>
+<<<<<<< codex/add-independent-history-module-to-wash-os-yojv1u
+<script src="../core/providers/loadPrompt.js"></script>
+=======
+>>>>>>> main
 <script src="ai-router.js"></script>
 <script src="native/gestor.js"></script>
 <script src="reuniones/file-detector.js"></script>
@@ -160,8 +164,12 @@ const MODULE_RENDERERS={home:()=>renderHome(),gestor:()=>renderGestorModule(),re
 const DYNAMIC_BADGES={gestor:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,historial:()=>'Supabase · meeting_history'};
 let MODULE_REGISTRY=[],DASHBOARD_MODULES=[],MODULE_BY_ID={},MODULE_BY_ROUTE={};
 function getModuleContext(){return{tasks,isVencida,fmtTime,topBar};}
+<<<<<<< codex/add-independent-history-module-to-wash-os-yojv1u
+function getReunionesContext(){return{topBar,historialReuniones,saveHist,saveTasks,tasks,renderTaskList,renderApp,view,todayStr,resolveAppPath,dlBlob};}
+=======
 function getReunionesContext(){return{topBar,historialReuniones,saveHist,todayStr,resolveAppPath,dlBlob};}
 function getHistorialContext(){return{topBar,todayStr,resolveAppPath};}
+>>>>>>> main
 function renderGestorModule(){const renderer=window.WashModules&&window.WashModules.gestor&&window.WashModules.gestor.render;if(typeof renderer==='function'){try{return renderer(getModuleContext());}catch(e){console.warn('Fallo al renderizar gestor modular, usando fallback local.',e);}}return renderGestor();}
 function normalizeModule(m={}){
   const id=m.id||'';

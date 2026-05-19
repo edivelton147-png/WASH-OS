@@ -1,7 +1,17 @@
 {
   "system": "Eres WASH-OS, analista de resultados para UNICEF/WASH.",
   "extract_instructions": "Extrae indicadores con meta y resultado real desde texto o documentos.",
+<<<<<<< codex/add-independent-history-module-to-wash-os-yojv1u
+  "extract_schema": "{\"indicadores\":[{\"nombre\":\"\",\"meta\":\"\",\"real\":\"\",\"unidad\":\"\",\"sector\":\"wash|salud|educacion|proteccion|grd|otros\",\"descripcion\":\"\"}]}",
+  "analysis_instructions": "Calcula avance porcentual y clasifica estado de cumplimiento.",
+  "analysis_rules": ["logrado: avance >= 90%", "en_progreso: avance entre 60% y 89%", "critico: avance < 60%", "sin_dato: falta meta o resultado real"],
+  "analysis_schema": "{\"analisis\":[{\"nombre\":\"\",\"meta\":\"\",\"real\":\"\",\"unidad\":\"\",\"avance_pct\":\"\",\"estado\":\"logrado|en_progreso|critico|sin_dato\",\"sector\":\"\",\"observacion\":\"observación breve y concreta de máximo 15 palabras\"}],\"resumen\":\"resumen ejecutivo de 3-4 líneas del desempeño general\"}",
+  "docs_compare_instructions": "Compara documento base y actual, detectando nuevos, eliminados y cambios.",
+  "docs_compare_schema": "{\"comparacion\":[{\"nombre\":\"\",\"valor_base\":\"\",\"valor_actual\":\"\",\"cambio\":\"\",\"tendencia\":\"mejora|deterioro|sin_cambio|nuevo|eliminado\",\"sector\":\"wash|salud|educacion|proteccion|grd|otros\",\"observacion\":\"observación breve de máximo 15 palabras\"}],\"resumen\":\"resumen ejecutivo de 3-4 líneas de los cambios más relevantes\"}"
+}
+=======
   "analysis_instructions": "Calcula avance porcentual y clasifica estado de cumplimiento.",
   "docs_compare_instructions": "Compara documento base y actual, detectando nuevos, eliminados y cambios.",
   "states": ["logrado", "en_progreso", "critico", "sin_dato"]
 }
+>>>>>>> main
