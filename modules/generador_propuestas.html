@@ -13,6 +13,7 @@ button{font-family:inherit;cursor:pointer;border-radius:var(--border-radius-md);
 html.embedded body{background:transparent;padding:0;min-height:auto}
 html.embedded .embed-hide{display:none!important}
 </style>
+<script src="../core/providers/loadPrompt.js"></script>
 <script>
 try{if(new URLSearchParams(window.location.search).get('embedded')==='1'||window.self!==window.top)document.documentElement.classList.add('embedded');}catch(e){if(new URLSearchParams(window.location.search).get('embedded')==='1')document.documentElement.classList.add('embedded');}
 </script>
@@ -351,7 +352,7 @@ function actualizarCopiloto(){
 }
 
 // ── PROCESAR ENTRADA ──────────────────────────────────────
-function procesarEntrada(){
+async function procesarEntrada(){
   const texto=entradaMode==='audio'?document.getElementById('audio-prop-txt')?.value.trim():document.getElementById('texto-prop-txt')?.value.trim();
   if(!texto||texto.length<20){alert('Agrega tu idea antes de continuar. Puedes dictarla por voz o escribirla.');return;}
   const tipo=document.getElementById('tipo-prop')?.value||'operativo';
@@ -364,7 +365,7 @@ function procesarEntrada(){
   entradaLog('Tipo: '+tipo+' · Sector: '+sector);
   entradaLog('Texto: '+texto.length.toLocaleString()+' chars');
 
-  const prompt=`Eres un especialista en formulación de documentos institucionales para UNICEF y organismos humanitarios.
+  const pp=await window.WashPromptLoader.loadPrompt('/config/prompts/propuestas.json',{system:'Eres WASH-OS, un asistente especializado en propuestas WASH/UNICEF.',proposal_instructions:'Redacta propuesta técnica y narrativa alineada al triple nexo y enfoque humanitario.'});const prompt=`${pp.system}\n${pp.proposal_instructions}\nEres un especialista en formulación de documentos institucionales para UNICEF y organismos humanitarios.
 
 Analiza esta idea expresada libremente y estructúrala usando el marco 5W humanitario.
 
@@ -491,7 +492,7 @@ function renderMapa(){
 }
 
 // ── GENERAR PROPUESTA FINAL ───────────────────────────────
-function generarPropuesta(){
+async function generarPropuesta(){
   const titulo=document.getElementById('prop-titulo')?.value.trim();
   const que=document.getElementById('w-que')?.value.trim();
   const por_que=document.getElementById('w-por_que')?.value.trim();
@@ -509,7 +510,7 @@ function generarPropuesta(){
   document.getElementById('prop-prog-bar').style.width='40%';
   document.getElementById('prop-prog-label').textContent='Generando propuesta...';
 
-  const prompt=`Eres un especialista en formulación de documentos institucionales para UNICEF y organismos humanitarios.
+  const pp=await window.WashPromptLoader.loadPrompt('/config/prompts/propuestas.json',{system:'Eres WASH-OS, un asistente especializado en propuestas WASH/UNICEF.',proposal_instructions:'Redacta propuesta técnica y narrativa alineada al triple nexo y enfoque humanitario.'});const prompt=`${pp.system}\n${pp.proposal_instructions}\nEres un especialista en formulación de documentos institucionales para UNICEF y organismos humanitarios.
 
 Genera una propuesta estructurada basada en esta información:
 
@@ -693,7 +694,7 @@ async function handleValDoc(file){
   }catch(e){document.getElementById('val-doc-info').textContent='Error: '+e.message;}
 }
 
-function validarDocumento(){
+async function validarDocumento(){
   const docTexto=valMode==='texto'?document.getElementById('val-txt')?.value.trim():valDocText.trim();
   if(!docTexto){alert('Sube o pega el documento a validar.');return;}
 
@@ -708,7 +709,7 @@ function validarDocumento(){
   document.getElementById('val-prog-bar').style.width='50%';
   document.getElementById('val-prog-label').textContent='Validando documento...';
 
-  const prompt=`Eres un revisor experto de documentos institucionales de UNICEF y organismos humanitarios.
+  const pp=await window.WashPromptLoader.loadPrompt('/config/prompts/propuestas.json',{system:'Eres WASH-OS, un asistente especializado en propuestas WASH/UNICEF.',validation_instructions:'Revisa calidad técnica, coherencia y brechas frente a estructura 5W.'});const prompt=`${pp.system}\n${pp.validation_instructions}\nEres un revisor experto de documentos institucionales de UNICEF y organismos humanitarios.
 
 Valida si este documento está alineado con los objetivos definidos en la estructura 5W.
 
