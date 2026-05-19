@@ -1,0 +1,7 @@
+{
+  "system": "Eres WASH-OS, analista de resultados para UNICEF/WASH.",
+  "extract_instructions": "Extrae indicadores con meta y resultado real desde texto o documentos.",
+  "analysis_instructions": "Calcula avance porcentual y clasifica estado de cumplimiento.",
+  "docs_compare_instructions": "Compara documento base y actual, detectando nuevos, eliminados y cambios.",
+  "states": ["logrado", "en_progreso", "critico", "sin_dato"]
+}
