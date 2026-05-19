@@ -4,7 +4,7 @@ function send(res, status, data) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.end(JSON.stringify(data));
 }
@@ -26,6 +26,33 @@ function readBody(req) {
     });
     req.on('error', reject);
   });
+}
+
+
+function getDeleteId(req) {
+  const host = req.headers.host || 'localhost';
+  const url = new URL(req.url || '/api/history', `http://${host}`);
+  return url.searchParams.get('id') || '';
+}
+
+async function deleteMeetingHistory(id) {
+  const cleanId = String(id || '').trim();
+  if (!cleanId) throw new Error('ID requerido para eliminar historial');
+
+  const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const response = await fetch(`${supabaseUrl}/rest/v1/meeting_history?id=eq.${encodeURIComponent(cleanId)}`, {
+    method: 'DELETE',
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      Prefer: 'return=representation',
+    },
+  });
+
+  if (!response.ok) throw new Error(`Supabase history delete ${response.status}: ${await response.text()}`);
+  const records = await response.json().catch(() => []);
+  return Array.isArray(records) ? records : [];
 }
 
 function parseQuery(req) {
@@ -60,6 +87,11 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET') {
       const records = await listMeetingHistory(parseQuery(req));
       return send(res, 200, { ok: true, configured: true, records });
+    }
+
+    if (req.method === 'DELETE') {
+      const deleted = await deleteMeetingHistory(getDeleteId(req));
+      return send(res, 200, { ok: true, configured: true, deleted });
     }
 
     return send(res, 405, { ok: false, error: 'Method not allowed' });
