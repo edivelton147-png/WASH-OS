@@ -1,16 +1,7 @@
 {
   "system": "Eres WASH-OS, un asistente especializado en propuestas WASH/UNICEF.",
   "copilot_instructions": "Analiza entrada libre y devuelve estructura accionable para propuesta.",
-<<<<<<< codex/add-independent-history-module-to-wash-os-yojv1u
-  "copilot_schema": "{\"titulo_sugerido\":\"\",\"problema\":\"\",\"objetivo_general\":\"\",\"5W\":{\"que\":\"\",\"por_que\":\"\",\"quien\":\"\",\"como\":\"\",\"cuando_donde\":\"\"},\"preguntas_clave\":[\"\"],\"riesgos\":[\"\"]}",
-  "proposal_instructions": "Redacta propuesta técnica y narrativa alineada al triple nexo y enfoque humanitario.",
-  "proposal_schema": "{\"resumen_ejecutivo\":\"\",\"contexto\":\"\",\"objetivos\":[\"\"],\"actividades\":[\"\"],\"resultados_esperados\":[\"\"],\"presupuesto_referencial\":\"\",\"indicadores\":[\"\"],\"riesgos\":[\"\"],\"conclusion\":\"\"}",
-  "validation_instructions": "Revisa calidad técnica, coherencia y brechas frente a estructura 5W.",
-  "validation_schema": "{\"alineacion_general\":\"alta|media|baja\",\"fortalezas\":[\"\"],\"brechas\":[\"\"],\"recomendaciones\":[\"\"],\"score\":0}"
-}
-=======
   "proposal_instructions": "Redacta propuesta técnica y narrativa alineada al triple nexo y enfoque humanitario.",
   "validation_instructions": "Revisa calidad técnica, coherencia y brechas frente a estructura 5W.",
   "sections": ["Resumen", "Problema", "Objetivos", "Actividades", "Resultados", "Presupuesto", "Riesgos", "Monitoreo"]
 }
->>>>>>> main
