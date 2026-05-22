@@ -40,6 +40,40 @@ function parseQuery(req) {
   };
 }
 
+function classifyError(error) {
+  const raw = String(error && error.message ? error.message : 'History API error');
+  const msg = raw.toLowerCase();
+
+  if (msg.includes('supabase no configurado') || msg.includes('not configured')) {
+    return { status: 503, configured: false, error: 'Supabase no configurado', hint: 'Faltan variables de entorno SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY.' };
+  }
+
+  if (msg.includes('invalid url') || msg.includes('only absolute urls are supported')) {
+    return { status: 500, configured: true, error: 'URL de Supabase inválida', hint: 'Revisa formato de SUPABASE_URL (incluye https:// y dominio correcto).' };
+  }
+
+  if (msg.includes('fetch failed') || msg.includes('econn') || msg.includes('enotfound') || msg.includes('network')) {
+    return { status: 502, configured: true, error: 'Error de red al conectar con Supabase', hint: 'No se pudo alcanzar Supabase desde el runtime (DNS/red/firewall).' };
+  }
+
+  if (msg.includes('supabase history insert') || msg.includes('supabase history list')) {
+    const statusMatch = raw.match(/\b(4\d\d|5\d\d)\b/);
+    const supabaseStatus = statusMatch ? Number(statusMatch[1]) : 502;
+    if (supabaseStatus === 401 || supabaseStatus === 403) {
+      return { status: 502, configured: true, error: 'Supabase rechazó la autenticación/autorización', hint: 'Revisa permisos/RLS y la service role key en el entorno del backend.' };
+    }
+    if (supabaseStatus === 404) {
+      return { status: 502, configured: true, error: 'Recurso de Supabase no encontrado', hint: 'Verifica endpoint REST y existencia de la tabla meeting_history.' };
+    }
+    if (supabaseStatus === 400 || supabaseStatus === 422) {
+      return { status: 502, configured: true, error: 'Solicitud inválida a Supabase', hint: 'Posible problema de esquema/columnas o filtros de consulta.' };
+    }
+    return { status: 502, configured: true, error: 'Error HTTP de Supabase', hint: 'Supabase respondió con error al leer/escribir meeting_history.' };
+  }
+
+  return { status: 500, configured: true, error: 'History API error', hint: 'Error interno al procesar historial operacional.' };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return send(res, 200, { ok: true });
 
@@ -47,7 +81,8 @@ module.exports = async function handler(req, res) {
     return send(res, 503, {
       ok: false,
       configured: false,
-      error: 'SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no configuradas',
+      error: 'Supabase no configurado',
+      hint: 'Faltan variables de entorno SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY.',
     });
   }
 
@@ -62,8 +97,14 @@ module.exports = async function handler(req, res) {
       return send(res, 200, { ok: true, configured: true, records });
     }
 
-    return send(res, 405, { ok: false, error: 'Method not allowed' });
+    return send(res, 405, { ok: false, configured: true, error: 'Method not allowed', hint: 'Usa GET para listar o POST para guardar historial.' });
   } catch (error) {
-    return send(res, 500, { ok: false, configured: true, error: error.message || 'History API error' });
+    const mapped = classifyError(error);
+    return send(res, mapped.status, {
+      ok: false,
+      configured: mapped.configured,
+      error: mapped.error,
+      hint: mapped.hint,
+    });
   }
 };
