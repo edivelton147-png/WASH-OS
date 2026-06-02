@@ -115,7 +115,7 @@
     applyFilters(){readFilters();load();},
     onFilterInput(){clearTimeout(state.timer);state.timer=setTimeout(()=>{readFilters();load();},300);},
     openDetail(id){state.selectedId=String(id);state.selected=state.records.find(r=>r.id===state.selectedId)||null;renderCurrent();},
-    sendTasksToManager(id){const record=state.records.find(r=>r.id===String(id));const tasks=record?record.tasks:[];window.dispatchEvent(new CustomEvent('wash-history-send-tasks',{detail:{source:'historial',record,tasks}}));window.WashMeetingHistoryUI.setStatus(`${tasks.length} tareas preparadas para futura integración con gestor.`);},
+    sendTasksToManager(id){const record=state.records.find(r=>r.id===String(id));const tasks=record?record.tasks:[];window.dispatchEvent(new CustomEvent('wash-history-send-tasks',{detail:{source:'historial',record,tasks}}));window.WashMeetingHistoryUI.setStatus(`${tasks.length} tareas enviadas al Gestor como sugerencias.`);},
     async deleteRecord(id){
       const record=state.records.find(r=>r.id===String(id));
       if(!record)return;
