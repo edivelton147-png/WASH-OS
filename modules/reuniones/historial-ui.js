@@ -70,7 +70,7 @@ window.WashMeetingHistoryUI = (function(){
       <div class="historial-section"><h4>Próximos pasos</h4>${list(record.next_steps,'Sin próximos pasos registrados.')}</div>
       <div class="historial-section"><h4>Referencia fuente</h4><p>${esc(record.source_reference||'Sin referencia fuente.')}</p></div>
       <div class="historial-section"><h4>Modelo IA utilizado</h4><p>${esc([record.provider,record.model].filter(Boolean).join(' / ')||'No especificado')}</p></div>
-      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashMeetingHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashMeetingHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button><button class="historial-btn secondary" style="color:#b91c1c;border-color:#fecaca;background:#fff" onclick="WashMeetingHistory.deleteRecord('${esc(record.id)}')">Eliminar reunión</button></div>
+      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashMeetingHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashMeetingHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button><button class="historial-btn secondary" onclick="WashMeetingHistory.exportDetail('${esc(record.id)}')">Exportar TXT</button><button class="historial-btn secondary" style="color:#b91c1c;border-color:#fecaca;background:#fff" onclick="WashMeetingHistory.deleteRecord('${esc(record.id)}')">Eliminar reunión</button></div>
     </div>`;
   }
 
