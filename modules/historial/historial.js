@@ -4,12 +4,15 @@ window.WashModules.historial = window.WashModules.historial || {};
 (function(){
   const CLASSIFICATIONS = ['Emergencia','Salud','WASH','Educación','Otros'];
   const LOCAL_HISTORY_KEY = 'wash-operational-history';
+  const LOCAL_FAVORITES_KEY = 'wash-history-favorites';
   const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',tag:'',q:''}, years:[], timer:null };
 
   function get(id){return document.getElementById(id);}
   function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
   function asArray(value){return Array.isArray(value)?value:(value?[value]:[]);}
   function readLocalHistory(){try{const records=JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||'[]');return Array.isArray(records)?records:[];}catch(error){console.warn('No se pudo leer historial local.',error);return [];} }
+  function readFavorites(){try{const values=JSON.parse(localStorage.getItem(LOCAL_FAVORITES_KEY)||'[]');return new Set(Array.isArray(values)?values.map(String):[]);}catch(error){console.warn('No se pudo leer favoritos del historial.',error);return new Set();}}
+  function writeFavorites(favorites){try{localStorage.setItem(LOCAL_FAVORITES_KEY,JSON.stringify([...favorites].map(String)));return true;}catch(error){console.warn('No se pudo guardar favoritos del historial.',error);return false;}}
   function raw(record){return record.raw_result && typeof record.raw_result==='object' ? record.raw_result : {};}
   function firstArray(...values){for(const value of values){if(Array.isArray(value)&&value.length)return value;}return [];}
   function inferClassification(record){
@@ -25,14 +28,15 @@ window.WashModules.historial = window.WashModules.historial || {};
   }
   function normalizeClassification(value){const text=normalizeText(value);if(text.includes('emergencia'))return 'Emergencia';if(text.includes('wash'))return 'WASH';if(text.includes('salud'))return 'Salud';if(text.includes('educacion'))return 'Educación';return CLASSIFICATIONS.includes(value)?value:'Otros';}
   function dateParts(record){const d=record.date?new Date(record.date):record.created_at?new Date(record.created_at):null;const ok=d&&!Number.isNaN(d.getTime());return {month:Number(record.month)||(ok?d.getUTCMonth()+1:''),year:Number(record.year)||(ok?d.getUTCFullYear():'')};}
-  function normalizeRecord(record){
+  function normalizeRecord(record, favorites){
     const data=raw(record);const parts=dateParts(record);
     const agreements=firstArray(record.completed_or_coordinated,data.agreements,data.acuerdos,data.completed_or_coordinated);
     const tasks=firstArray(record.pending_tasks,data.tasks,data.tareas,data.pending_tasks);
     const risks=firstArray(record.risks,data.risks,data.riesgos);
     const next=firstArray(data.next_steps,data.proximos_pasos,data.nextSteps,record.next_steps,record.notes);
     const notes=firstArray(data.notes,data.notas,record.observations,record.notas);
-    return {...record,id:String(record.id||record.created_at||Math.random()),month:parts.month,year:parts.year,classification:inferClassification(record),agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags)};
+    const id=String(record.id||record.created_at||Math.random());
+    return {...record,id,month:parts.month,year:parts.year,classification:inferClassification(record),agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags),isFavorite:favorites?favorites.has(id):readFavorites().has(id)};
   }
   function queryParams(){const params=new URLSearchParams();params.set('type','meeting');params.set('limit','150');if(state.filters.month)params.set('month',state.filters.month);if(state.filters.year)params.set('year',state.filters.year);return params.toString();}
   function matchesClientFilters(record){
@@ -45,6 +49,7 @@ window.WashModules.historial = window.WashModules.historial || {};
   }
   function refreshYears(records){const years=[...new Set(records.map(r=>Number(r.year)).filter(Boolean))].sort((a,b)=>b-a);state.years=years;}
   function updateYearOptions(){const select=get('hist-year');if(!select)return;const current=select.value;const options=['<option value="">Todos los años</option>',...state.years.map(year=>`<option value="${year}">${year}</option>`)];select.innerHTML=options.join('');select.value=current;}
+  function refreshFavoriteFlags(favorites){state.records=state.records.map(record=>({...record,isFavorite:favorites.has(record.id)}));state.selected=state.records.find(r=>r.id===state.selectedId)||state.selected;}
   function renderCurrent(){if(!window.WashHistoryUI)return;updateYearOptions();window.WashHistoryUI.updateList(state.records,state.selectedId);window.WashHistoryUI.updateDetail(state.selected);window.WashHistoryUI.setStatus(state.status);}
   async function load(){
     if(!window.WashHistoryUI)return;
@@ -53,7 +58,8 @@ window.WashModules.historial = window.WashModules.historial || {};
       const response=await fetch(`/api/history?${queryParams()}`,{method:'GET'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||`History API ${response.status}`);
-      const normalized=asArray(data.records).map(normalizeRecord);
+      const favorites=readFavorites();
+      const normalized=asArray(data.records).map(record=>normalizeRecord(record,favorites));
       refreshYears(normalized);
       state.records=normalized.filter(matchesClientFilters);
       state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
@@ -62,7 +68,8 @@ window.WashModules.historial = window.WashModules.historial || {};
       renderCurrent();
     }catch(error){
       console.warn('No se pudo cargar historial operacional.',error);
-      const localRecords=readLocalHistory().filter(record=>record.type==='meeting').map(record=>normalizeRecord({...record,storage:'local'}));
+      const favorites=readFavorites();
+      const localRecords=readLocalHistory().filter(record=>record.type==='meeting').map(record=>normalizeRecord({...record,storage:'local'},favorites));
       refreshYears(localRecords);
       state.records=localRecords.filter(matchesClientFilters);
       state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
@@ -85,7 +92,8 @@ window.WashModules.historial = window.WashModules.historial || {};
     openDetail(id){state.selectedId=String(id);state.selected=state.records.find(r=>r.id===state.selectedId)||null;renderCurrent();},
     sendTasksToManager(id){const record=state.records.find(r=>r.id===String(id));const tasks=record?record.tasks:[];window.dispatchEvent(new CustomEvent('wash-history-send-tasks',{detail:{source:'historial',record,tasks}}));window.WashHistoryUI.setStatus(`${tasks.length} tareas preparadas para futura integración con gestor.`);},
     copyDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;const text=detailText(record);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>window.WashHistoryUI.setStatus('Detalle copiado al portapapeles.')).catch(()=>window.WashHistoryUI.setStatus('No se pudo copiar automáticamente.'));}else window.WashHistoryUI.setStatus('Portapapeles no disponible en este navegador.');},
-    exportDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;downloadTextFile(exportFileName(record),detailText(record));window.WashHistoryUI.setStatus('Detalle exportado como TXT.');}
+    exportDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;downloadTextFile(exportFileName(record),detailText(record));window.WashHistoryUI.setStatus('Detalle exportado como TXT.');},
+    toggleFavorite(id){const recordId=String(id);const favorites=readFavorites();const isFavorite=favorites.has(recordId);if(isFavorite)favorites.delete(recordId);else favorites.add(recordId);if(!writeFavorites(favorites)){window.WashHistoryUI.setStatus('No se pudo actualizar favorito local.',true);return;}refreshFavoriteFlags(favorites);state.selectedId=recordId;state.selected=state.records.find(r=>r.id===recordId)||state.selected;renderCurrent();window.WashHistoryUI.setStatus(isFavorite?'Favorito quitado.':'Favorito guardado localmente.');}
   };
 
   window.WashModules.historial.render = function(ctx){state.ctx=ctx;return window.WashHistoryUI.render(ctx,state);};
