@@ -21,6 +21,7 @@ window.WashHistoryUI = (function(){
       <div class="historial-shell">
         <div class="historial-toolbar">
           <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="summary, title o tags" oninput="WashHistory.onFilterInput()"></div>
+          <div class="historial-field"><label>Tag</label><input id="hist-tag" value="${esc(state.filters.tag)}" placeholder="Tag" oninput="WashHistory.onFilterInput()"></div>
           <div class="historial-field"><label>Mes</label><select id="hist-month" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los meses'},...MONTHS.slice(1).map((m,i)=>({value:i+1,label:m}))],state.filters.month)}</select></div>
           <div class="historial-field"><label>Año</label><select id="hist-year" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los años'},...years.map(y=>({value:y,label:y}))],state.filters.year)}</select></div>
           <div class="historial-field"><label>Clasificación</label><select id="hist-classification" onchange="WashHistory.applyFilters()">${options(['','Emergencia','Salud','WASH','Educación','Otros'].map(v=>({value:v,label:v||'Todas'})),state.filters.classification)}</select></div>
