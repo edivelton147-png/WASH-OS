@@ -16,7 +16,10 @@ window.WashModules.gestor.render = function(ctx){
   function esc(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function taskText(item){return item?.action||item?.tarea||item?.title||item?.titulo||item?.text||item?.descripcion||String(item||'Tarea sugerida');}
   function taskPriority(item){const p=item?.priority||item?.prioridad||'Media';return ['Alta','Media','Baja'].includes(p)?p:'Media';}
-  function taskDate(item){const raw=item?.date||item?.fecha||'';return /^\d{4}-\d{2}-\d{2}/.test(raw)?raw.slice(0,10):'';}
+  function dateParts(y,m,d){y=Number(y);m=Number(m);d=Number(d);const dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d?`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`:'';}
+  function sourceYear(record){const raw=String(record?.date||record?.fecha||record?.created_at||record?.createdAt||'').trim();const iso=raw.match(/^(\d{4})-\d{1,2}-\d{1,2}/);if(iso)return Number(iso[1]);const dmy=raw.match(/^\d{1,2}[\/-]\d{1,2}[\/-](\d{4})/);if(dmy)return Number(dmy[1]);const dt=new Date(raw);return Number.isFinite(dt.getTime())?dt.getFullYear():new Date().getFullYear();}
+  function taskDate(item,record){const raw=String(item?.date||item?.fecha||'').trim();if(!raw)return '';const iso=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(iso)return dateParts(iso[1],iso[2],iso[3]);const dmy=raw.match(/^(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{4}))?$/);if(dmy)return dateParts(dmy[3]||sourceYear(record),dmy[2],dmy[1]);const months={enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,setiembre:9,octubre:10,noviembre:11,diciembre:12};const natural=raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/^(\d{1,2})(?:\s+de)?\s+([a-z]+)(?:\s+de)?(?:\s+(\d{4}))?$/);if(natural&&months[natural[2]])return dateParts(natural[3]||sourceYear(record),months[natural[2]],natural[1]);return '';}
+  function taskDesc(item){return item?.description||item?.descripcion||item?.desc||item?.details||item?.detalle||item?.notes||item?.nota||'';}
   function roundCurrentDate(base=new Date()){const d=new Date(base);const minutes=d.getMinutes();if(minutes===0)return d;if(minutes<=30)d.setMinutes(30,0,0);else{d.setHours(d.getHours()+1,0,0,0);}return d;}
   function isoLocal(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:00`;}
   function combineDateWithSmartHour(dateText){const rounded=roundCurrentDate();if(dateText){const [y,m,d]=dateText.split('-').map(Number);rounded.setFullYear(y,m-1,d);}return rounded;}
@@ -41,7 +44,7 @@ window.WashModules.gestor.render = function(ctx){
   window.WashGestorSuggestions={
     receive(detail){
       const tasks=Array.isArray(detail?.tasks)?detail.tasks:[];
-      state.suggestions=tasks.map((item,i)=>({id:`sg-${Date.now()}-${i}`,checked:true,title:taskText(item),desc:item?.description||item?.descripcion||item?.notes||item?.nota||'',priority:taskPriority(item),date:taskDate(item),link:detail?.record?.source_reference||''}));
+      state.suggestions=tasks.map((item,i)=>({id:`sg-${Date.now()}-${i}`,checked:true,title:taskText(item),desc:taskDesc(item),priority:taskPriority(item),date:taskDate(item,detail?.record),link:detail?.record?.source_reference||''}));
       if(typeof window.go==='function')window.go('gestor');
       setTimeout(()=>{if(typeof window.renderApp==='function')window.renderApp();else if(typeof window.gSwitch==='function')window.gSwitch('lista');},80);
     },
