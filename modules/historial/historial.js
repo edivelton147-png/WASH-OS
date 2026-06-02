@@ -3,11 +3,13 @@ window.WashModules.historial = window.WashModules.historial || {};
 
 (function(){
   const CLASSIFICATIONS = ['Emergencia','Salud','WASH','Educación','Otros'];
+  const LOCAL_HISTORY_KEY = 'wash-operational-history';
   const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',q:''}, years:[], timer:null };
 
   function get(id){return document.getElementById(id);}
   function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
   function asArray(value){return Array.isArray(value)?value:(value?[value]:[]);}
+  function readLocalHistory(){try{const records=JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||'[]');return Array.isArray(records)?records:[];}catch(error){console.warn('No se pudo leer historial local.',error);return [];} }
   function raw(record){return record.raw_result && typeof record.raw_result==='object' ? record.raw_result : {};}
   function firstArray(...values){for(const value of values){if(Array.isArray(value)&&value.length)return value;}return [];}
   function inferClassification(record){
@@ -34,6 +36,8 @@ window.WashModules.historial = window.WashModules.historial || {};
   }
   function queryParams(){const params=new URLSearchParams();params.set('type','meeting');params.set('limit','150');if(state.filters.month)params.set('month',state.filters.month);if(state.filters.year)params.set('year',state.filters.year);return params.toString();}
   function matchesClientFilters(record){
+    if(state.filters.month&&Number(record.month)!==Number(state.filters.month))return false;
+    if(state.filters.year&&Number(record.year)!==Number(state.filters.year))return false;
     if(state.filters.classification&&record.classification!==state.filters.classification)return false;
     if(state.filters.q){const q=normalizeText(state.filters.q);const haystack=normalizeText([record.summary,record.title,...asArray(record.tags)].join(' '));if(!haystack.includes(q))return false;}
     return true;
@@ -57,7 +61,14 @@ window.WashModules.historial = window.WashModules.historial || {};
       renderCurrent();
     }catch(error){
       console.warn('No se pudo cargar historial operacional.',error);
-      state.records=[];state.selected=null;state.selectedId=null;state.status=`No se pudo cargar Supabase: ${error.message}`;renderCurrent();window.WashHistoryUI.setStatus(state.status,true);
+      const localRecords=readLocalHistory().filter(record=>record.type==='meeting').map(record=>normalizeRecord({...record,storage:'local'}));
+      refreshYears(localRecords);
+      state.records=localRecords.filter(matchesClientFilters);
+      state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
+      state.selectedId=state.selected?state.selected.id:null;
+      state.status=`${state.records.length} registros cargados desde respaldo local`;
+      renderCurrent();
+      window.WashHistoryUI.setStatus(state.status,!state.records.length);
     }
   }
   function readFilters(){state.filters={month:get('hist-month')?.value||'',year:get('hist-year')?.value||'',classification:get('hist-classification')?.value||'',q:get('hist-search')?.value.trim()||''};}
