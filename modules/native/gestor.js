@@ -50,7 +50,9 @@ window.WashModules.gestor.render = function(ctx){
   window.WashGestorSuggestions={
     receive(detail){
       const tasks=Array.isArray(detail?.tasks)?detail.tasks:[];
-      state.suggestions=tasks.map((item,i)=>{const times=suggestionTimes();return {id:`sg-${Date.now()}-${i}`,checked:true,title:taskText(item),desc:taskDesc(item),category:taskCategory(item),priority:taskPriority(item),date:taskDate(item,detail?.record),startTime:times.start,endDate:'',endTime:times.end,link:taskLink(item,detail?.record)};});
+      const record=detail?.record||{};
+      const source={id:record.id||null,title:record.title||'',date:record.date||record.created_at||record.createdAt||'',reference:record.source_reference||''};
+      state.suggestions=tasks.map((item,i)=>{const times=suggestionTimes();return {id:`sg-${Date.now()}-${i}`,checked:true,title:taskText(item),desc:taskDesc(item),category:taskCategory(item),priority:taskPriority(item),date:taskDate(item,record),startTime:times.start,endDate:'',endTime:times.end,link:taskLink(item,record),sourceId:source.id,sourceTitle:source.title,sourceDate:source.date,sourceReference:source.reference};});
       if(typeof window.go==='function')window.go('gestor');
       setTimeout(()=>{if(typeof window.renderApp==='function')window.renderApp();else if(typeof window.gSwitch==='function')window.gSwitch('lista');},80);
     },
@@ -71,7 +73,7 @@ window.WashModules.gestor.render = function(ctx){
         const endTime=document.getElementById(`sg-end-time-${s.id}`)?.value||'';
         const start=combineDateWithSmartHour(date,startTime);
         const end=(endDate||endTime)?combineDateWithBaseHour(endDate||date,start,endTime):new Date(start.getTime()+60*60000);
-        target.unshift({id:Date.now()+Math.floor(Math.random()*1000),titulo:title,desc:document.getElementById(`sg-desc-${s.id}`)?.value.trim()||'',categoria:document.getElementById(`sg-cat-${s.id}`)?.value||'Reuniones',prioridad:document.getElementById(`sg-pri-${s.id}`)?.value||'Media',inicio:isoLocal(start),cierre:isoLocal(end),estimado:60,email:'',link:document.getElementById(`sg-link-${s.id}`)?.value.trim()||'',nota:'',notaCierre:'',reprogNotas:[],parentId:null,parentTitle:'',estado:'Pendiente',elapsed:0,running:false});
+        target.unshift({id:Date.now()+Math.floor(Math.random()*1000),titulo:title,desc:document.getElementById(`sg-desc-${s.id}`)?.value.trim()||'',categoria:document.getElementById(`sg-cat-${s.id}`)?.value||'Reuniones',prioridad:document.getElementById(`sg-pri-${s.id}`)?.value||'Media',inicio:isoLocal(start),cierre:isoLocal(end),estimado:60,email:'',link:document.getElementById(`sg-link-${s.id}`)?.value.trim()||'',nota:'',notaCierre:'',reprogNotas:[],parentId:s.sourceId||null,parentTitle:s.sourceTitle||'',estado:'Pendiente',elapsed:0,running:false});
       });
       state.suggestions=kept;
       saveAndRefresh();
@@ -102,9 +104,10 @@ window.WashModules.gestor.render = function(ctx){
     const tasks=state.ctx?.tasks||[];
     tasks.forEach(task=>{
       const card=document.getElementById(`card-${task.id}`);if(!card||card.dataset.gestorEnhanced)return;card.dataset.gestorEnhanced='1';
+      const origin=task.parentTitle?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><span style="border:1px solid #e2e8f0;background:#f8fafc;color:#475569;padding:4px 9px;font-size:11px;border-radius:999px">Origen: ${esc(task.parentTitle)}</span></div>`:'';
       const links=task.link?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"><button data-open-link="${task.id}" style="border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;padding:4px 9px;font-size:11px;border-radius:999px">${labelForLink(task.link)}</button>${String(task.link).toLowerCase().includes('teams')?`<button data-open-teams="${task.id}" style="border:1px solid #ccfbf1;background:#f0fdfa;color:#0f766e;padding:4px 9px;font-size:11px;border-radius:999px">Abrir Teams</button><button data-copy-teams="${task.id}" style="border:1px solid #e2e8f0;background:#fff;color:#64748b;padding:4px 9px;font-size:11px;border-radius:999px">Copiar formato Teams</button>`:''}</div>`:'';
       const quick=`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0"><span style="font-size:11px;color:#64748b;padding:4px 0">Reprogramar:</span>${[['30m','+30m'],['1h','+1h'],['tomorrow','Mañana'],['eod','Fin del día'],['week','Próxima semana']].map(([m,l])=>`<button data-quick-reprog="${m}" data-id="${task.id}" style="border:1px solid #e2e8f0;background:#fff;color:#475569;padding:4px 8px;font-size:11px;border-radius:8px">${l}</button>`).join('')}<button data-blocked="${task.id}" style="border:1px solid #fde68a;background:#fffbeb;color:#92400e;padding:4px 8px;font-size:11px;border-radius:8px">Bloqueada</button></div>`;
-      card.insertAdjacentHTML('beforeend',links+quick);
+      card.insertAdjacentHTML('beforeend',origin+links+quick);
     });
     document.querySelectorAll('[data-quick-reprog]').forEach(btn=>btn.onclick=()=>reschedule(btn.dataset.id,btn.dataset.quickReprog));
     document.querySelectorAll('[data-blocked]').forEach(btn=>btn.onclick=()=>setBlocked(btn.dataset.blocked));
