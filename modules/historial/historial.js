@@ -5,7 +5,7 @@ window.WashModules.historial = window.WashModules.historial || {};
   const CLASSIFICATIONS = ['Emergencia','Salud','WASH','Educación','Otros'];
   const LOCAL_HISTORY_KEY = 'wash-operational-history';
   const LOCAL_FAVORITES_KEY = 'wash-history-favorites';
-  const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',tag:'',q:''}, years:[], timer:null };
+  const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',tag:'',q:'',favorite:false}, years:[], timer:null };
 
   function get(id){return document.getElementById(id);}
   function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
@@ -43,6 +43,7 @@ window.WashModules.historial = window.WashModules.historial || {};
     if(state.filters.month&&Number(record.month)!==Number(state.filters.month))return false;
     if(state.filters.year&&Number(record.year)!==Number(state.filters.year))return false;
     if(state.filters.classification&&record.classification!==state.filters.classification)return false;
+    if(state.filters.favorite&&record.isFavorite!==true)return false;
     if(state.filters.tag){const tag=normalizeText(state.filters.tag);const tags=asArray(record.tags).map(normalizeText);if(!tags.some(item=>item.includes(tag)))return false;}
     if(state.filters.q){const q=normalizeText(state.filters.q);const haystack=normalizeText([record.summary,record.title,...asArray(record.tags)].join(' '));if(!haystack.includes(q))return false;}
     return true;
@@ -79,7 +80,7 @@ window.WashModules.historial = window.WashModules.historial || {};
       window.WashHistoryUI.setStatus(state.status,!state.records.length);
     }
   }
-  function readFilters(){state.filters={month:get('hist-month')?.value||'',year:get('hist-year')?.value||'',classification:get('hist-classification')?.value||'',tag:get('hist-tag')?.value.trim()||'',q:get('hist-search')?.value.trim()||''};}
+  function readFilters(){state.filters={month:get('hist-month')?.value||'',year:get('hist-year')?.value||'',classification:get('hist-classification')?.value||'',tag:get('hist-tag')?.value.trim()||'',q:get('hist-search')?.value.trim()||'',favorite:get('hist-favorite')?.checked===true};}
   function detailText(record){return [`${record.title||'Reunión sin título'}`,`Fecha: ${record.date||record.created_at||'Sin fecha'}`,`Clasificación: ${record.classification}`,`IA: ${[record.provider,record.model].filter(Boolean).join(' / ')||'No especificado'}`,'',`Resumen:\n${record.summary||''}`,'',`Acuerdos:\n${record.agreements.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Tareas:\n${record.tasks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Riesgos:\n${record.risks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Próximos pasos:\n${record.next_steps.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`].join('\n');}
   function exportFileName(record){const rawDate=record.date||record.created_at;const d=rawDate?new Date(rawDate):null;const date=(!d||Number.isNaN(d.getTime()))?new Date():d;return `historial_${date.toISOString().slice(0,10)}.txt`;}
   function downloadTextFile(filename,text){const blob=new Blob([text],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(url);}
@@ -93,7 +94,7 @@ window.WashModules.historial = window.WashModules.historial || {};
     sendTasksToManager(id){const record=state.records.find(r=>r.id===String(id));const tasks=record?record.tasks:[];window.dispatchEvent(new CustomEvent('wash-history-send-tasks',{detail:{source:'historial',record,tasks}}));window.WashHistoryUI.setStatus(`${tasks.length} tareas preparadas para futura integración con gestor.`);},
     copyDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;const text=detailText(record);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>window.WashHistoryUI.setStatus('Detalle copiado al portapapeles.')).catch(()=>window.WashHistoryUI.setStatus('No se pudo copiar automáticamente.'));}else window.WashHistoryUI.setStatus('Portapapeles no disponible en este navegador.');},
     exportDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;downloadTextFile(exportFileName(record),detailText(record));window.WashHistoryUI.setStatus('Detalle exportado como TXT.');},
-    toggleFavorite(id){const recordId=String(id);const favorites=readFavorites();const isFavorite=favorites.has(recordId);if(isFavorite)favorites.delete(recordId);else favorites.add(recordId);if(!writeFavorites(favorites)){window.WashHistoryUI.setStatus('No se pudo actualizar favorito local.',true);return;}refreshFavoriteFlags(favorites);state.selectedId=recordId;state.selected=state.records.find(r=>r.id===recordId)||state.selected;renderCurrent();window.WashHistoryUI.setStatus(isFavorite?'Favorito quitado.':'Favorito guardado localmente.');}
+    toggleFavorite(id){const recordId=String(id);const favorites=readFavorites();const isFavorite=favorites.has(recordId);if(isFavorite)favorites.delete(recordId);else favorites.add(recordId);if(!writeFavorites(favorites)){window.WashHistoryUI.setStatus('No se pudo actualizar favorito local.',true);return;}refreshFavoriteFlags(favorites);state.records=state.records.filter(matchesClientFilters);state.selected=state.records.find(r=>r.id===recordId)||state.records[0]||null;state.selectedId=state.selected?state.selected.id:null;renderCurrent();window.WashHistoryUI.setStatus(isFavorite?'Favorito quitado.':'Favorito guardado localmente.');}
   };
 
   window.WashModules.historial.render = function(ctx){state.ctx=ctx;return window.WashHistoryUI.render(ctx,state);};
