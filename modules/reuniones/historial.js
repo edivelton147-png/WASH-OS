@@ -98,6 +98,8 @@
   }
   function readFilters(){state.filters={month:get('hist-month')?.value||'',year:get('hist-year')?.value||'',classification:get('hist-classification')?.value||'',q:get('hist-search')?.value.trim()||''};}
   function detailText(record){return [`${record.title||'Reunión sin título'}`,`Fecha: ${record.date||record.created_at||'Sin fecha'}`,`Clasificación: ${record.classification}`,`IA: ${[record.provider,record.model].filter(Boolean).join(' / ')||'No especificado'}`,'',`Resumen:\n${record.summary||''}`,'',`Acuerdos:\n${record.agreements.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Tareas:\n${record.tasks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Riesgos:\n${record.risks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Próximos pasos:\n${record.next_steps.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`].join('\n');}
+  function exportFileName(record){const rawDate=record.date||record.created_at;const d=rawDate?new Date(rawDate):null;const date=(!d||Number.isNaN(d.getTime()))?new Date():d;return `reunion_${date.toISOString().slice(0,10)}.txt`;}
+  function downloadTextFile(filename,text){const blob=new Blob([text],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(url);}
 
   async function deleteRemote(id){
     const response=await fetch(`/api/history?id=${encodeURIComponent(id)}`,{method:'DELETE'});
@@ -131,7 +133,8 @@
         window.WashMeetingHistoryUI.setStatus(`No se pudo eliminar: ${error.message}`,true);
       }
     },
-    copyDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;const text=detailText(record);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>window.WashMeetingHistoryUI.setStatus('Detalle copiado al portapapeles.')).catch(()=>window.WashMeetingHistoryUI.setStatus('No se pudo copiar automáticamente.'));}else window.WashMeetingHistoryUI.setStatus('Portapapeles no disponible en este navegador.');}
+    copyDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;const text=detailText(record);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>window.WashMeetingHistoryUI.setStatus('Detalle copiado al portapapeles.')).catch(()=>window.WashMeetingHistoryUI.setStatus('No se pudo copiar automáticamente.'));}else window.WashMeetingHistoryUI.setStatus('Portapapeles no disponible en este navegador.');},
+    exportDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;downloadTextFile(exportFileName(record),detailText(record));window.WashMeetingHistoryUI.setStatus('Detalle exportado como TXT.');}
   };
 
   window.WashMeetingHistory.renderPanel = function(ctx){state.ctx=ctx;return window.WashMeetingHistoryUI.renderPanel(ctx,state);};
