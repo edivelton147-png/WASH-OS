@@ -4,12 +4,15 @@ window.WashModules.historial = window.WashModules.historial || {};
 (function(){
   const CLASSIFICATIONS = ['Emergencia','Salud','WASH','Educación','Otros'];
   const LOCAL_HISTORY_KEY = 'wash-operational-history';
+  const FAVORITES_KEY = 'wash-history-favorites';
   const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',q:''}, years:[], timer:null };
 
   function get(id){return document.getElementById(id);}
   function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
   function asArray(value){return Array.isArray(value)?value:(value?[value]:[]);}
   function readLocalHistory(){try{const records=JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||'[]');return Array.isArray(records)?records:[];}catch(error){console.warn('No se pudo leer historial local.',error);return [];} }
+  function readFavoriteIds(){try{const ids=JSON.parse(localStorage.getItem(FAVORITES_KEY)||'[]');return Array.isArray(ids)?ids.map(String).filter(Boolean):[];}catch(error){console.warn('No se pudo leer favoritos locales.',error);return [];} }
+  function writeFavoriteIds(ids){try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...new Set(ids.map(String).filter(Boolean))]));return true;}catch(error){console.warn('No se pudo escribir favoritos locales.',error);return false;} }
   function raw(record){return record.raw_result && typeof record.raw_result==='object' ? record.raw_result : {};}
   function firstArray(...values){for(const value of values){if(Array.isArray(value)&&value.length)return value;}return [];}
   function inferClassification(record){
@@ -43,6 +46,7 @@ window.WashModules.historial = window.WashModules.historial || {};
     return true;
   }
   function refreshYears(records){const years=[...new Set(records.map(r=>Number(r.year)).filter(Boolean))].sort((a,b)=>b-a);state.years=years;}
+  function markFavorites(records){const favorites=new Set(readFavoriteIds());return records.map(record=>({...record,isFavorite:favorites.has(String(record.id))}));}
   function updateYearOptions(){const select=get('hist-year');if(!select)return;const current=select.value;const options=['<option value="">Todos los años</option>',...state.years.map(year=>`<option value="${year}">${year}</option>`)];select.innerHTML=options.join('');select.value=current;}
   function renderCurrent(){if(!window.WashHistoryUI)return;updateYearOptions();window.WashHistoryUI.updateList(state.records,state.selectedId);window.WashHistoryUI.updateDetail(state.selected);window.WashHistoryUI.setStatus(state.status);}
   async function load(){
@@ -52,7 +56,7 @@ window.WashModules.historial = window.WashModules.historial || {};
       const response=await fetch(`/api/history?${queryParams()}`,{method:'GET'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||`History API ${response.status}`);
-      const normalized=asArray(data.records).map(normalizeRecord);
+      const normalized=markFavorites(asArray(data.records).map(normalizeRecord));
       refreshYears(normalized);
       state.records=normalized.filter(matchesClientFilters);
       state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
@@ -61,7 +65,7 @@ window.WashModules.historial = window.WashModules.historial || {};
       renderCurrent();
     }catch(error){
       console.warn('No se pudo cargar historial operacional.',error);
-      const localRecords=readLocalHistory().filter(record=>record.type==='meeting').map(record=>normalizeRecord({...record,storage:'local'}));
+      const localRecords=markFavorites(readLocalHistory().filter(record=>record.type==='meeting').map(record=>normalizeRecord({...record,storage:'local'})));
       refreshYears(localRecords);
       state.records=localRecords.filter(matchesClientFilters);
       state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
@@ -81,6 +85,7 @@ window.WashModules.historial = window.WashModules.historial || {};
     onFilterInput(){clearTimeout(state.timer);state.timer=setTimeout(()=>{readFilters();load();},300);},
     openDetail(id){state.selectedId=String(id);state.selected=state.records.find(r=>r.id===state.selectedId)||null;renderCurrent();},
     sendTasksToManager(id){const record=state.records.find(r=>r.id===String(id));const tasks=record?record.tasks:[];window.dispatchEvent(new CustomEvent('wash-history-send-tasks',{detail:{source:'historial',record,tasks}}));window.WashHistoryUI.setStatus(`${tasks.length} tareas preparadas para futura integración con gestor.`);},
+    toggleFavorite(id){const clean=String(id);const favorites=readFavoriteIds();const exists=favorites.includes(clean);const next=exists?favorites.filter(item=>item!==clean):[...favorites,clean];if(!writeFavoriteIds(next)){window.WashHistoryUI.setStatus('No se pudo guardar favorito local.',true);return;}state.records=markFavorites(state.records);state.selected=state.records.find(r=>r.id===state.selectedId)||null;state.status=exists?'Reunión quitada de favoritos.':'Reunión marcada como favorita.';renderCurrent();},
     copyDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;const text=detailText(record);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>window.WashHistoryUI.setStatus('Detalle copiado al portapapeles.')).catch(()=>window.WashHistoryUI.setStatus('No se pudo copiar automáticamente.'));}else window.WashHistoryUI.setStatus('Portapapeles no disponible en este navegador.');}
   };
 
