@@ -22,6 +22,7 @@ window.WashHistoryUI = (function(){
         <div class="historial-toolbar">
           <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="summary, title o tags" oninput="WashHistory.onFilterInput()"></div>
           <div class="historial-field"><label>Tag</label><input id="hist-tag" value="${esc(state.filters.tag)}" placeholder="Tag" oninput="WashHistory.onFilterInput()"></div>
+          <div class="historial-field"><label>Favoritos</label><label><input id="hist-favorite" type="checkbox" onchange="WashHistory.onFilterInput()" ${state.filters.favorite?'checked':''}> Solo favoritos</label></div>
           <div class="historial-field"><label>Mes</label><select id="hist-month" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los meses'},...MONTHS.slice(1).map((m,i)=>({value:i+1,label:m}))],state.filters.month)}</select></div>
           <div class="historial-field"><label>Año</label><select id="hist-year" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los años'},...years.map(y=>({value:y,label:y}))],state.filters.year)}</select></div>
           <div class="historial-field"><label>Clasificación</label><select id="hist-classification" onchange="WashHistory.applyFilters()">${options(['','Emergencia','Salud','WASH','Educación','Otros'].map(v=>({value:v,label:v||'Todas'})),state.filters.classification)}</select></div>
@@ -64,7 +65,7 @@ window.WashHistoryUI = (function(){
       <div class="historial-section"><h4>Próximos pasos</h4>${list(record.next_steps,'Sin próximos pasos registrados.')}</div>
       <div class="historial-section"><h4>Referencia fuente</h4><p>${esc(record.source_reference||'Sin referencia fuente.')}</p></div>
       <div class="historial-section"><h4>Modelo IA utilizado</h4><p>${esc([record.provider,record.model].filter(Boolean).join(' / ')||'No especificado')}</p></div>
-      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button><button class="historial-btn secondary" onclick="WashHistory.exportDetail('${esc(record.id)}')">Exportar TXT</button></div>
+      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button><button class="historial-btn secondary" onclick="WashHistory.exportDetail('${esc(record.id)}')">Exportar TXT</button><button class="historial-btn secondary" onclick="WashHistory.toggleFavorite('${esc(record.id)}')">${record.isFavorite?'★':'☆'} Favorito</button></div>
     </div>`;
   }
 
