@@ -1,4 +1,5 @@
 .historial-shell{display:grid;gap:14px;color:#1e293b}
+.historial-nav{display:flex;justify-content:flex-start}
 .historial-toolbar{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(140px,.7fr) minmax(130px,.7fr) auto auto;gap:10px;align-items:end}
 .historial-field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#64748b;margin-bottom:5px;font-weight:600}
 .historial-field input,.historial-field select{height:36px}

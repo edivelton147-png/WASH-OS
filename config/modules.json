@@ -101,10 +101,10 @@
     "icon": "📚",
     "route": "historial",
     "path": null,
-    "badge": "Supabase",
+    "badge": "Local",
     "color": "#6366f1",
     "bg": "#eef2ff",
-    "desc": "Consulta reuniones guardadas en meeting_history.",
+    "desc": "Consulta actividades guardadas localmente.",
     "actions": []
   }
 ]

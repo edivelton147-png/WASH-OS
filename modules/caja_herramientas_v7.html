@@ -155,10 +155,10 @@ const DEFAULT_MODULES_CONFIG=[
   {id:'extractor',name:'Extractor de indicadores',icon:'📊',route:'extractor',path:null,badge:'PDF · DOCX · PPTX · XLSX',color:'#0ea5e9',bg:'#f0f9ff',desc:'Extrae indicadores de cualquier documento.',actions:[]},
   {id:'comparador',name:'Comparador de resultados',icon:'📈',route:'comparador',path:'/modules/comparador_resultados.html',badge:'Resultados · KPIs · Tendencias',color:'#f97316',bg:'#fff7ed',desc:'Analiza cambios, tendencias y variaciones entre períodos.',actions:[]},
   {id:'propuestas',name:'Generador de propuestas',icon:'📋',route:'propuestas',path:'/modules/generador_propuestas.html',badge:'Narrativas · Donantes · UNICEF',color:'#ec4899',bg:'#fdf2f8',desc:'Genera propuestas técnicas y narrativas tipo UNICEF.',actions:[]},
-  {id:'historial',name:'Historial operacional',icon:'📚',route:'historial',path:null,badge:'Supabase',color:'#6366f1',bg:'#eef2ff',desc:'Consulta reuniones guardadas en meeting_history.',actions:[]}
+  {id:'historial',name:'Historial operacional',icon:'📚',route:'historial',path:null,badge:'Local',color:'#6366f1',bg:'#eef2ff',desc:'Consulta actividades guardadas localmente.',actions:[]}
 ];
 const MODULE_RENDERERS={home:()=>renderHome(),gestor:()=>renderGestorModule(),revisor:()=>renderRevisor(),mejorador:()=>renderMejorador(),traductor:()=>renderTraductor(),reuniones:()=>renderReuniones(),extractor:()=>renderExtractor(),comparador:m=>renderToolFrame(m),propuestas:m=>renderToolFrame(m),historial:()=>renderHistorial()};
-const DYNAMIC_BADGES={gestor:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,historial:()=>'Supabase · meeting_history'};
+const DYNAMIC_BADGES={gestor:()=>`${tasks.length} tareas${tasks.filter(t=>isVencida(t)).length>0?' · ⚠'+tasks.filter(t=>isVencida(t)).length:''}`,historial:()=>'Local'};
 let MODULE_REGISTRY=[],DASHBOARD_MODULES=[],MODULE_BY_ID={},MODULE_BY_ROUTE={};
 function getModuleContext(){return{tasks,isVencida,fmtTime,topBar};}
 function getReunionesContext(){return{topBar,historialReuniones,saveHist,todayStr,resolveAppPath,dlBlob};}
@@ -301,13 +301,7 @@ function renderHome(){
     </div>`).join('')}
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-    <div onclick="go('historial')" style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;border-top:4px solid ${MODULE_BY_ID.historial.color}" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-      <div style="width:38px;height:38px;border-radius:10px;background:${MODULE_BY_ID.historial.bg};display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">${MODULE_BY_ID.historial.icon}</div>
-      <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">${MODULE_BY_ID.historial.name}</div>
-      <div style="font-size:11px;color:#64748b;line-height:1.5;margin-bottom:8px">${MODULE_BY_ID.historial.desc}</div>
-      <span style="font-size:10px;background:${MODULE_BY_ID.historial.bg};color:${MODULE_BY_ID.historial.color};border-radius:99px;padding:2px 8px;border:1px solid #c7d2fe">${moduleBadge(MODULE_BY_ID.historial)}</span>
-    </div>
+  <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:16px">
     <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px;border-top:4px solid #64748b">
       <div style="width:38px;height:38px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px">💾</div>
       <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:3px">Respaldo de datos</div>
