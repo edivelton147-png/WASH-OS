@@ -1,74 +1,48 @@
 window.WashHistoryUI = (function(){
-  const MONTHS = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
   function esc(value){return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function options(items, selected){return items.map(item => `<option value="${esc(item.value)}" ${String(item.value)===String(selected||'')?'selected':''}>${esc(item.label)}</option>`).join('');}
-  function short(text, max=170){const clean=String(text||'').replace(/\s+/g,' ').trim();return clean.length>max?`${clean.slice(0,max-1)}…`:clean;}
-  function itemText(item){if(item===null||item===undefined)return '';if(typeof item==='string')return item;if(typeof item==='number')return String(item);return item.action||item.tarea||item.text||item.descripcion||item.summary||item.title||JSON.stringify(item);}
-  function list(items, empty){const data=Array.isArray(items)?items.filter(Boolean):[];if(!data.length)return `<p class="historial-muted">${esc(empty)}</p>`;return `<ul>${data.map(item=>`<li>${esc(itemText(item))}</li>`).join('')}</ul>`;}
-  function compactList(items, empty, max=3){const data=Array.isArray(items)?items.filter(Boolean):[];if(!data.length)return `<p class="historial-muted">${esc(empty)}</p>`;const more=data.length>max?`<p class="historial-muted">+${data.length-max} más en el TXT.</p>`:'';return `<ul>${data.slice(0,max).map(item=>`<li>${esc(short(itemText(item),120))}</li>`).join('')}</ul>${more}`;}
-  function taskList(items){const data=Array.isArray(items)?items.filter(Boolean):[];if(!data.length)return '<p class="historial-muted">Sin tareas registradas.</p>';const max=5;const more=data.length>max?`<p class="historial-muted">+${data.length-max} tareas más en el TXT.</p>`:'';return data.slice(0,max).map(item=>{const text=itemText(item);const meta=typeof item==='object'&&item?[
-      item.responsible||item.responsable?`👤 ${item.responsible||item.responsable}`:'',
-      item.date||item.fecha?`📅 ${item.date||item.fecha}`:'',
-      item.priority||item.prioridad?`⚑ ${item.priority||item.prioridad}`:''
-    ].filter(Boolean).join(' · '):'';return `<div class="historial-task"><strong>${esc(short(text||'Tarea',120))}</strong>${meta?`<small>${esc(meta)}</small>`:''}</div>`;}).join('')+more;}
-  function riskSummary(items){const data=Array.isArray(items)?items.filter(Boolean):[];if(!data.length)return '<p class="historial-muted">Sin riesgos registrados.</p>';return `<p>${data.length} riesgo${data.length===1?'':'s'} registrado${data.length===1?'':'s'}${data[0]?`: ${esc(short(itemText(data[0]),120))}`:''}</p>`;}
-  function dateLabel(record){const raw=record.date||record.created_at; if(!raw)return 'Sin fecha'; const d=new Date(raw); return Number.isNaN(d.getTime())?'Sin fecha':d.toLocaleDateString('es-PE',{year:'numeric',month:'short',day:'2-digit'});}
-  function lineClass(classification){const key=String(classification||'Otros').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); if(key.includes('emergencia'))return 'historial-line-emergencia'; if(key.includes('wash'))return 'historial-line-wash'; if(key.includes('salud'))return 'historial-line-salud'; if(key.includes('educacion'))return 'historial-line-educacion'; return 'historial-line-otros';}
-
-  function render(ctx, state){
-    const years = state.years.length ? state.years : [new Date().getFullYear()];
-    return `<div style="padding:16px">${ctx.topBar('Historial operacional','📚')}
+  function short(text, max=160){const clean=String(text||'').replace(/\s+/g,' ').trim();return clean.length>max?clean.slice(0,max-1)+'…':clean;}
+  function dateLabel(value){const date=new Date(value);return Number.isNaN(date.getTime())?'Fecha no disponible':date.toLocaleString('es-PE',{dateStyle:'medium',timeStyle:'short'});}
+  function option(value,label,selected){return `<option value="${esc(value)}" ${String(value)===String(selected||'')?'selected':''}>${esc(label)}</option>`;}
+  function toolOptions(tools, selected){return [option('','Todas las herramientas',selected),...tools.map(tool=>option(tool,tool,selected))].join('');}
+  function tagPills(tags){return (tags||[]).length ? tags.map(tag=>`<span class="historial-pill tag">#${esc(tag)}</span>`).join('') : '<span class="historial-pill muted">Sin tags</span>';}
+  function favoriteButton(record){return `<button class="historial-icon-btn" onclick="event.stopPropagation();WashHistory.toggleFavorite('${esc(record.id)}')" title="Favorito">${record.favorite?'★':'☆'}</button>`;}
+  function render(ctx, state, tools){
+    const topBar=ctx&&typeof ctx.topBar==='function'?ctx.topBar('Historial general','📚'):'<h2>📚 Historial general</h2>';
+    return `<div style="padding:16px">${topBar}
       <div class="historial-shell">
         <div class="historial-toolbar">
-          <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="summary, title o tags" oninput="WashHistory.onFilterInput()"></div>
+          <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="Título, resumen, herramienta o tag" oninput="WashHistory.onFilterInput()"></div>
+          <div class="historial-field"><label>Herramienta</label><select id="hist-tool" onchange="WashHistory.onFilterInput()">${toolOptions(tools,state.filters.tool)}</select></div>
           <div class="historial-field"><label>Tag</label><input id="hist-tag" value="${esc(state.filters.tag)}" placeholder="Tag" oninput="WashHistory.onFilterInput()"></div>
           <div class="historial-field historial-favorite-field"><label class="historial-favorite-filter"><input id="hist-favorite" type="checkbox" onchange="WashHistory.onFilterInput()" ${state.filters.favorite?'checked':''}><span>Solo favoritos</span></label></div>
-          <div class="historial-field"><label>Mes</label><select id="hist-month" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los meses'},...MONTHS.slice(1).map((m,i)=>({value:i+1,label:m}))],state.filters.month)}</select></div>
-          <div class="historial-field"><label>Año</label><select id="hist-year" onchange="WashHistory.applyFilters()">${options([{value:'',label:'Todos los años'},...years.map(y=>({value:y,label:y}))],state.filters.year)}</select></div>
-          <div class="historial-field"><label>Clasificación</label><select id="hist-classification" onchange="WashHistory.applyFilters()">${options(['','Emergencia','Salud','WASH','Educación','Otros'].map(v=>({value:v,label:v||'Todas'})),state.filters.classification)}</select></div>
-          <button class="historial-btn" onclick="WashHistory.reload()">Actualizar</button>
+          <div class="historial-actions"><button class="historial-btn" onclick="WashHistory.reload()">Actualizar</button><button class="historial-btn secondary" onclick="WashHistory.exportJson()">Exportar JSON</button><button class="historial-btn danger" onclick="WashHistory.clearLocal()">Limpiar</button></div>
         </div>
         <div class="historial-status" id="hist-status">${esc(state.status)}</div>
         <div class="historial-layout">
-          <div id="hist-list" class="historial-list">${renderList(state.records,state.selectedId)}</div>
-          <div id="hist-detail" class="historial-detail">${renderDetail(state.selected)}</div>
+          <div id="hist-list" class="historial-list"></div>
+          <div id="hist-detail" class="historial-detail"></div>
         </div>
       </div>
     </div>`;
   }
-
   function renderList(records, selectedId){
-    if(!records.length)return '<div class="historial-empty">Sin reuniones para los filtros seleccionados.<br>Procesa una reunión o ajusta búsqueda, mes, año o clasificación.</div>';
+    if(!records.length)return '<div class="historial-empty">Sin actividades para los filtros seleccionados.<br>El historial general usa localStorage local y no consulta servicios externos.</div>';
     return records.map(record=>`<article class="historial-card ${record.id===selectedId?'active':''}" onclick="WashHistory.openDetail('${esc(record.id)}')">
-      <div class="historial-class-line ${lineClass(record.classification)}"></div>
-      <div class="historial-card-head"><div class="historial-title">${esc(record.title||'Reunión sin título')}</div><div class="historial-date">${esc(dateLabel(record))}</div></div>
+      <div class="historial-card-head"><div><div class="historial-title">${esc(record.title)}</div><div class="historial-date">${esc(dateLabel(record.created_at))}</div></div>${favoriteButton(record)}</div>
       <div class="historial-summary">${esc(short(record.summary||'Sin resumen disponible.'))}</div>
-      <div class="historial-meta">
-        <span class="historial-pill classification">${esc(record.classification||'Otros')}</span>
-        <span class="historial-pill">✅ ${record.task_count||0} tareas</span>
-        <span class="historial-pill">⚠ ${record.risk_count||0} riesgos</span>
-        <span class="historial-pill model">${esc([record.provider,record.model].filter(Boolean).join(' · ')||'IA no especificada')}</span>
-      </div>
+      <div class="historial-meta"><span class="historial-pill tool">${esc(record.tool)}</span>${tagPills(record.tags)}</div>
     </article>`).join('');
   }
-
   function renderDetail(record){
-    if(!record)return '<div class="historial-detail-empty">Selecciona una reunión para ver el detalle completo.</div>';
+    if(!record)return '<div class="historial-detail-empty">Selecciona una actividad para ver el detalle.</div>';
     return `<div class="historial-detail-body">
-      <h3>${esc(record.title||'Reunión sin título')}</h3>
-      <div class="historial-detail-sub">${esc(dateLabel(record))} · ${esc(record.classification||'Otros')} · ${esc([record.provider,record.model].filter(Boolean).join(' / ')||'modelo IA no especificado')}</div>
+      <div class="historial-detail-title-row"><h3>${esc(record.title)}</h3>${favoriteButton(record)}</div>
+      <div class="historial-detail-sub">${esc(dateLabel(record.created_at))} · ${esc(record.tool)} · ${record.favorite?'Favorito':'No favorito'}</div>
       <div class="historial-section"><h4>Resumen</h4><p>${esc(record.summary||'Sin resumen disponible.')}</p></div>
-      <div class="historial-section"><h4>Acuerdos clave</h4>${compactList(record.agreements,'Sin acuerdos registrados.')}</div>
-      <div class="historial-section"><h4>Tareas</h4>${taskList(record.tasks)}</div>
-      <div class="historial-section"><h4>Riesgos</h4>${riskSummary(record.risks)}</div>
-      <div class="historial-section"><h4>Notas y próximos pasos</h4><p>${(record.notes||[]).length} notas · ${(record.next_steps||[]).length} próximos pasos. Usa “Exportar TXT” para el detalle completo.</p></div>
-      <div class="historial-section"><h4>Referencia fuente</h4><p>${esc(record.source_reference||'Sin referencia fuente.')}</p></div>
-      <div class="historial-section"><h4>Modelo IA utilizado</h4><p>${esc([record.provider,record.model].filter(Boolean).join(' / ')||'No especificado')}</p></div>
-      <div class="historial-detail-actions"><button class="historial-btn" onclick="WashHistory.sendTasksToManager('${esc(record.id)}')">Enviar tareas al gestor</button><button class="historial-btn secondary" onclick="WashHistory.copyDetail('${esc(record.id)}')">Copiar detalle</button><button class="historial-btn secondary" onclick="WashHistory.exportDetail('${esc(record.id)}')">Exportar TXT</button><button class="historial-btn secondary" onclick="WashHistory.toggleFavorite('${esc(record.id)}')">${record.isFavorite?'★':'☆'} Favorito</button></div>
+      <div class="historial-section"><h4>Tags</h4><div class="historial-meta">${tagPills(record.tags)}</div></div>
+      <div class="historial-detail-actions"><button class="historial-btn secondary" onclick="WashHistory.toggleFavorite('${esc(record.id)}')">${record.favorite?'★ Quitar favorito':'☆ Marcar favorito'}</button><button class="historial-btn danger" onclick="WashHistory.deleteRecord('${esc(record.id)}')">Eliminar registro</button></div>
     </div>`;
   }
-
   function updateList(records, selectedId){const el=document.getElementById('hist-list');if(el)el.innerHTML=renderList(records,selectedId);}
   function updateDetail(record){const el=document.getElementById('hist-detail');if(el)el.innerHTML=renderDetail(record);}
   function setStatus(text, error){const el=document.getElementById('hist-status');if(el){el.textContent=text||'';el.className=`historial-status${error?' historial-error':''}`;}}
