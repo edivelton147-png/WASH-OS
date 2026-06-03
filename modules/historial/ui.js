@@ -7,9 +7,10 @@ window.WashHistoryUI = (function(){
   function tagPills(tags){return (tags||[]).length ? tags.map(tag=>`<span class="historial-pill tag">#${esc(tag)}</span>`).join('') : '<span class="historial-pill muted">Sin tags</span>';}
   function favoriteButton(record){return `<button class="historial-icon-btn" onclick="event.stopPropagation();WashHistory.toggleFavorite('${esc(record.id)}')" title="Favorito">${record.favorite?'★':'☆'}</button>`;}
   function render(ctx, state, tools){
-    const topBar=ctx&&typeof ctx.topBar==='function'?ctx.topBar('Historial general','📚'):'<h2>📚 Historial general</h2>';
+    const topBar=ctx&&typeof ctx.topBar==='function'?ctx.topBar('Historial operacional','📚'):'<h2>📚 Historial operacional</h2>';
     return `<div style="padding:16px">${topBar}
       <div class="historial-shell">
+        <div class="historial-nav"><button class="historial-btn secondary" onclick="window.location.hash='#/dashboard'">← Volver al dashboard</button></div>
         <div class="historial-toolbar">
           <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="Título, resumen, herramienta o tag" oninput="WashHistory.onFilterInput()"></div>
           <div class="historial-field"><label>Herramienta</label><select id="hist-tool" onchange="WashHistory.onFilterInput()">${toolOptions(tools,state.filters.tool)}</select></div>
