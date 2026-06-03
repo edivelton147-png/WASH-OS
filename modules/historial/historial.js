@@ -2,100 +2,104 @@ window.WashModules = window.WashModules || {};
 window.WashModules.historial = window.WashModules.historial || {};
 
 (function(){
-  const CLASSIFICATIONS = ['Emergencia','Salud','WASH','Educación','Otros'];
-  const LOCAL_HISTORY_KEY = 'wash-operational-history';
-  const LOCAL_FAVORITES_KEY = 'wash-history-favorites';
-  const state = { ctx:null, records:[], selectedId:null, selected:null, status:'Listo para cargar historial.', filters:{month:'',year:'',classification:'',tag:'',q:'',favorite:false}, years:[], timer:null };
+  const STORAGE_KEY = 'wash-general-history';
+  const TOOL_OPTIONS = ['general','traductor','revisor','mejorador','indicadores','propuestas','comparador','reuniones','gestor'];
+  const DEFAULT_FILTERS = { tool:'', tag:'', favorite:false, q:'' };
+  const state = { ctx:null, records:[], selectedId:null, filters:{...DEFAULT_FILTERS}, status:'Historial general local listo.' };
 
   function get(id){return document.getElementById(id);}
-  function normalizeText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
-  function asArray(value){return Array.isArray(value)?value:(value?[value]:[]);}
-  function readLocalHistory(){try{const records=JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY)||'[]');return Array.isArray(records)?records:[];}catch(error){console.warn('No se pudo leer historial local.',error);return [];} }
-  function readFavorites(){try{const values=JSON.parse(localStorage.getItem(LOCAL_FAVORITES_KEY)||'[]');return new Set(Array.isArray(values)?values.map(String):[]);}catch(error){console.warn('No se pudo leer favoritos del historial.',error);return new Set();}}
-  function writeFavorites(favorites){try{localStorage.setItem(LOCAL_FAVORITES_KEY,JSON.stringify([...favorites].map(String)));return true;}catch(error){console.warn('No se pudo guardar favoritos del historial.',error);return false;}}
-  function raw(record){return record.raw_result && typeof record.raw_result==='object' ? record.raw_result : {};}
-  function firstArray(...values){for(const value of values){if(Array.isArray(value)&&value.length)return value;}return [];}
-  function inferClassification(record){
-    const data=raw(record);
-    const explicit=data.classification||data.clasificacion||record.classification||record.clasificacion;
-    if(explicit)return normalizeClassification(explicit);
-    const haystack=normalizeText([record.title,record.summary,record.type,record.source_reference,...asArray(record.tags)].join(' '));
-    if(/emergencia|urgente|alerta|crisis|desastre|inundacion|brote/.test(haystack))return 'Emergencia';
-    if(/\bwash\b|agua|saneamiento|higiene|letrina|cloracion/.test(haystack))return 'WASH';
-    if(/salud|sanitario|clinica|hospital|brote|epidemi/.test(haystack))return 'Salud';
-    if(/educacion|escuela|docente|aprendizaje|estudiante/.test(haystack))return 'Educación';
-    return 'Otros';
+  function uid(){return `hist-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;}
+  function now(){return new Date().toISOString();}
+  function cleanText(value, max){return String(value ?? '').replace(/\s+/g,' ').trim().slice(0,max);}
+  function normalizeSearch(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+  function parseBoolean(value){return value===true || value==='true' || value===1 || value==='1';}
+  function normalizeTags(tags){
+    const values = Array.isArray(tags) ? tags : (tags ? [tags] : []);
+    return [...new Set(values.map(tag => cleanText(tag,40)).filter(Boolean))].slice(0,12);
   }
-  function normalizeClassification(value){const text=normalizeText(value);if(text.includes('emergencia'))return 'Emergencia';if(text.includes('wash'))return 'WASH';if(text.includes('salud'))return 'Salud';if(text.includes('educacion'))return 'Educación';return CLASSIFICATIONS.includes(value)?value:'Otros';}
-  function dateParts(record){const d=record.date?new Date(record.date):record.created_at?new Date(record.created_at):null;const ok=d&&!Number.isNaN(d.getTime());return {month:Number(record.month)||(ok?d.getUTCMonth()+1:''),year:Number(record.year)||(ok?d.getUTCFullYear():'')};}
-  function normalizeRecord(record, favorites){
-    const data=raw(record);const parts=dateParts(record);
-    const agreements=firstArray(record.completed_or_coordinated,data.agreements,data.acuerdos,data.completed_or_coordinated);
-    const tasks=firstArray(record.pending_tasks,data.tasks,data.tareas,data.pending_tasks);
-    const risks=firstArray(record.risks,data.risks,data.riesgos);
-    const next=firstArray(data.next_steps,data.proximos_pasos,data.nextSteps,record.next_steps,record.notes);
-    const notes=firstArray(data.notes,data.notas,record.observations,record.notas);
-    const id=String(record.id||record.created_at||Math.random());
-    return {...record,id,month:parts.month,year:parts.year,classification:inferClassification(record),agreements,tasks,risks,notes,next_steps:next,task_count:tasks.length,risk_count:risks.length,tags:asArray(record.tags),isFavorite:favorites?favorites.has(id):readFavorites().has(id)};
+  function normalizeTool(tool){const value=cleanText(tool || 'general',40).toLowerCase();return TOOL_OPTIONS.includes(value)?value:'general';}
+  function normalizeCreatedAt(value){const d=value?new Date(value):null;return d && !Number.isNaN(d.getTime()) ? d.toISOString() : now();}
+  function normalizeRecord(record){
+    const safe = record && typeof record==='object' ? record : {};
+    return {
+      id: cleanText(safe.id,80) || uid(),
+      created_at: normalizeCreatedAt(safe.created_at),
+      tool: normalizeTool(safe.tool),
+      title: cleanText(safe.title,120) || 'Actividad registrada',
+      summary: cleanText(safe.summary,300),
+      tags: normalizeTags(safe.tags),
+      favorite: parseBoolean(safe.favorite)
+    };
   }
-  function queryParams(){const params=new URLSearchParams();params.set('type','meeting');params.set('limit','150');if(state.filters.month)params.set('month',state.filters.month);if(state.filters.year)params.set('year',state.filters.year);return params.toString();}
-  function matchesClientFilters(record){
-    if(state.filters.month&&Number(record.month)!==Number(state.filters.month))return false;
-    if(state.filters.year&&Number(record.year)!==Number(state.filters.year))return false;
-    if(state.filters.classification&&record.classification!==state.filters.classification)return false;
-    if(state.filters.favorite&&record.isFavorite!==true)return false;
-    if(state.filters.tag){const tag=normalizeText(state.filters.tag);const tags=asArray(record.tags).map(normalizeText);if(!tags.some(item=>item.includes(tag)))return false;}
-    if(state.filters.q){const q=normalizeText(state.filters.q);const haystack=normalizeText([record.summary,record.title,...asArray(record.tags)].join(' '));if(!haystack.includes(q))return false;}
+  function read(){
+    try{const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');return Array.isArray(data)?data.map(normalizeRecord):[];}
+    catch(error){console.warn('No se pudo leer el historial general local.',error);return [];}
+  }
+  function write(records){
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records.map(normalizeRecord)));return true;}
+    catch(error){console.warn('No se pudo guardar el historial general local.',error);return false;}
+  }
+  function sortRecords(records){return [...records].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));}
+  function add(record){
+    const normalized = normalizeRecord(record);
+    const records = read().filter(item => item.id !== normalized.id);
+    records.unshift(normalized);
+    write(sortRecords(records));
+    return normalized;
+  }
+  function list(){return sortRecords(read());}
+  function remove(id){const key=String(id||'');const records=read();const next=records.filter(item=>item.id!==key);write(next);return next.length!==records.length;}
+  function clear(){write([]);return true;}
+  function exportHistory(){return { storage:STORAGE_KEY, exported_at:now(), records:list() };}
+  function matches(record){
+    if(state.filters.tool && record.tool!==state.filters.tool)return false;
+    if(state.filters.favorite && !record.favorite)return false;
+    if(state.filters.tag){const tag=normalizeSearch(state.filters.tag);if(!record.tags.some(item=>normalizeSearch(item).includes(tag)))return false;}
+    if(state.filters.q){const q=normalizeSearch(state.filters.q);const haystack=normalizeSearch([record.tool,record.title,record.summary,...record.tags].join(' '));if(!haystack.includes(q))return false;}
     return true;
   }
-  function refreshYears(records){const years=[...new Set(records.map(r=>Number(r.year)).filter(Boolean))].sort((a,b)=>b-a);state.years=years;}
-  function updateYearOptions(){const select=get('hist-year');if(!select)return;const current=select.value;const options=['<option value="">Todos los años</option>',...state.years.map(year=>`<option value="${year}">${year}</option>`)];select.innerHTML=options.join('');select.value=current;}
-  function refreshFavoriteFlags(favorites){state.records=state.records.map(record=>({...record,isFavorite:favorites.has(record.id)}));state.selected=state.records.find(r=>r.id===state.selectedId)||state.selected;}
-  function renderCurrent(){if(!window.WashHistoryUI)return;updateYearOptions();window.WashHistoryUI.updateList(state.records,state.selectedId);window.WashHistoryUI.updateDetail(state.selected);window.WashHistoryUI.setStatus(state.status);}
-  async function load(){
-    if(!window.WashHistoryUI)return;
-    state.status='Cargando historial desde Supabase...';window.WashHistoryUI.setStatus(state.status);
-    try{
-      const response=await fetch(`/api/history?${queryParams()}`,{method:'GET'});
-      const data=await response.json().catch(()=>({}));
-      if(!response.ok||!data.ok)throw new Error(data.error||`History API ${response.status}`);
-      const favorites=readFavorites();
-      const normalized=asArray(data.records).map(record=>normalizeRecord(record,favorites));
-      refreshYears(normalized);
-      state.records=normalized.filter(matchesClientFilters);
-      state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
-      state.selectedId=state.selected?state.selected.id:null;
-      state.status=`${state.records.length} reuniones cargadas · Supabase meeting_history`;
-      renderCurrent();
-    }catch(error){
-      console.warn('No se pudo cargar historial operacional.',error);
-      const favorites=readFavorites();
-      const localRecords=readLocalHistory().filter(record=>record.type==='meeting').map(record=>normalizeRecord({...record,storage:'local'},favorites));
-      refreshYears(localRecords);
-      state.records=localRecords.filter(matchesClientFilters);
-      state.selected=state.records.find(r=>r.id===state.selectedId)||state.records[0]||null;
-      state.selectedId=state.selected?state.selected.id:null;
-      state.status=`${state.records.length} registros cargados desde respaldo local`;
-      renderCurrent();
-      window.WashHistoryUI.setStatus(state.status,!state.records.length);
-    }
+  function filteredRecords(){return state.records.filter(matches);}
+  function download(filename, content, type){
+    const blob=new Blob([content],{type});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
-  function readFilters(){state.filters={month:get('hist-month')?.value||'',year:get('hist-year')?.value||'',classification:get('hist-classification')?.value||'',tag:get('hist-tag')?.value.trim()||'',q:get('hist-search')?.value.trim()||'',favorite:get('hist-favorite')?.checked===true};}
-  function detailText(record){return [`${record.title||'Reunión sin título'}`,`Fecha: ${record.date||record.created_at||'Sin fecha'}`,`Clasificación: ${record.classification}`,`IA: ${[record.provider,record.model].filter(Boolean).join(' / ')||'No especificado'}`,'',`Resumen:\n${record.summary||''}`,'',`Acuerdos:\n${record.agreements.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Tareas:\n${record.tasks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Riesgos:\n${record.risks.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`,'',`Próximos pasos:\n${record.next_steps.map(x=>typeof x==='string'?x:JSON.stringify(x)).join('\n')}`].join('\n');}
-  function exportFileName(record){const rawDate=record.date||record.created_at;const d=rawDate?new Date(rawDate):null;const date=(!d||Number.isNaN(d.getTime()))?new Date():d;return `historial_${date.toISOString().slice(0,10)}.txt`;}
-  function downloadTextFile(filename,text){const blob=new Blob([text],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(url);}
+  function setStatus(text, error){state.status=text||'';if(window.WashHistoryUI)window.WashHistoryUI.setStatus(state.status,error);}
+  function renderCurrent(){
+    if(!window.WashHistoryUI)return;
+    const records=filteredRecords();
+    window.WashHistoryUI.updateList(records,state.selectedId);
+    window.WashHistoryUI.updateDetail(state.records.find(record=>record.id===state.selectedId)||null);
+    setStatus(`${records.length} actividad(es) en historial general local.`);
+  }
+  function load(){state.records=list();if(state.selectedId&&!state.records.some(record=>record.id===state.selectedId))state.selectedId=null;renderCurrent();}
+  function init(ctx){
+    state.ctx=ctx||state.ctx||{};
+    state.records=list();
+    const app=get('app');
+    if(app && window.WashHistoryUI)app.innerHTML=window.WashHistoryUI.render(state.ctx,state,TOOL_OPTIONS);
+    renderCurrent();
+  }
+  function onFilterInput(){
+    state.filters.q=get('hist-search')?.value.trim()||'';
+    state.filters.tag=get('hist-tag')?.value.trim()||'';
+    state.filters.tool=get('hist-tool')?.value||'';
+    state.filters.favorite=!!get('hist-favorite')?.checked;
+    renderCurrent();
+  }
+  function reload(){load();}
+  function openDetail(id){state.selectedId=String(id||'');renderCurrent();}
+  function toggleFavorite(id){const record=state.records.find(item=>item.id===String(id||''));if(!record)return;add({...record,favorite:!record.favorite});load();}
+  function deleteRecord(id){if(!confirm('¿Eliminar este registro del historial general local?'))return;remove(id);load();}
+  function clearLocal(){if(!confirm('¿Limpiar todo el historial general local? Esta acción no afecta reuniones ni servicios externos.'))return;clear();state.selectedId=null;load();}
+  function exportJson(){const data=exportHistory();download(`wash-general-history-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(data,null,2),'application/json');}
 
-  window.WashHistory = {
-    init(){load();},
-    reload(){readFilters();load();},
-    applyFilters(){readFilters();load();},
-    onFilterInput(){clearTimeout(state.timer);state.timer=setTimeout(()=>{readFilters();load();},300);},
-    openDetail(id){state.selectedId=String(id);state.selected=state.records.find(r=>r.id===state.selectedId)||null;renderCurrent();},
-    sendTasksToManager(id){const record=state.records.find(r=>r.id===String(id));const tasks=record?record.tasks:[];window.dispatchEvent(new CustomEvent('wash-history-send-tasks',{detail:{source:'historial',record,tasks}}));window.WashHistoryUI.setStatus(`${tasks.length} tareas enviadas al Gestor como sugerencias.`);},
-    copyDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;const text=detailText(record);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>window.WashHistoryUI.setStatus('Detalle copiado al portapapeles.')).catch(()=>window.WashHistoryUI.setStatus('No se pudo copiar automáticamente.'));}else window.WashHistoryUI.setStatus('Portapapeles no disponible en este navegador.');},
-    exportDetail(id){const record=state.records.find(r=>r.id===String(id));if(!record)return;downloadTextFile(exportFileName(record),detailText(record));window.WashHistoryUI.setStatus('Detalle exportado como TXT.');},
-    toggleFavorite(id){const recordId=String(id);const favorites=readFavorites();const isFavorite=favorites.has(recordId);if(isFavorite)favorites.delete(recordId);else favorites.add(recordId);if(!writeFavorites(favorites)){window.WashHistoryUI.setStatus('No se pudo actualizar favorito local.',true);return;}refreshFavoriteFlags(favorites);state.records=state.records.filter(matchesClientFilters);state.selected=state.records.find(r=>r.id===recordId)||state.records[0]||null;state.selectedId=state.selected?state.selected.id:null;renderCurrent();window.WashHistoryUI.setStatus(isFavorite?'Favorito quitado.':'Favorito guardado localmente.');}
-  };
-
-  window.WashModules.historial.render = function(ctx){state.ctx=ctx;return window.WashHistoryUI.render(ctx,state);};
+  window.WashGeneralHistory = { add, list, remove, clear, export: exportHistory };
+  window.WashHistory = { init, reload, onFilterInput, openDetail, toggleFavorite, deleteRecord, clearLocal, exportJson };
 })();
