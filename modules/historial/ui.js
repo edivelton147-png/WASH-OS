@@ -7,7 +7,7 @@ window.WashHistoryUI = (function(){
   function tagPills(tags){return (tags||[]).length ? tags.map(tag=>`<span class="historial-pill tag">#${esc(tag)}</span>`).join('') : '<span class="historial-pill muted">Sin tags</span>';}
   function favoriteButton(record){return `<button class="historial-icon-btn" onclick="event.stopPropagation();WashHistory.toggleFavorite('${esc(record.id)}')" title="Favorito">${record.favorite?'★':'☆'}</button>`;}
   function render(ctx, state, tools){
-    const topBar=ctx&&typeof ctx.topBar==='function'?ctx.topBar('Historial general','📚'):'<h2>📚 Historial general</h2>';
+    const topBar=ctx&&typeof ctx.topBar==='function'?ctx.topBar('Historial operacional','📚'):'<h2>📚 Historial operacional</h2>';
     return `<div style="padding:16px">${topBar}
       <div class="historial-shell">
         <div class="historial-toolbar">
