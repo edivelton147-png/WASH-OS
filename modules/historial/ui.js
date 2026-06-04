@@ -10,7 +10,7 @@ window.WashHistoryUI = (function(){
     const topBar=ctx&&typeof ctx.topBar==='function'?ctx.topBar('Historial operacional','📚'):'<h2>📚 Historial operacional</h2>';
     return `<div style="padding:16px">${topBar}
       <div class="historial-shell">
-        <div class="historial-nav"><button class="historial-btn secondary" onclick="window.location.hash='#/dashboard'">← Volver al dashboard</button></div>
+        <div class="historial-nav">
         <div class="historial-toolbar">
           <div class="historial-field"><label>Buscar</label><input id="hist-search" value="${esc(state.filters.q)}" placeholder="Título, resumen, herramienta o tag" oninput="WashHistory.onFilterInput()"></div>
           <div class="historial-field"><label>Herramienta</label><select id="hist-tool" onchange="WashHistory.onFilterInput()">${toolOptions(tools,state.filters.tool)}</select></div>
